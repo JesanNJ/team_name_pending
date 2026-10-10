@@ -103,7 +103,7 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
 class CanteenSerializer(serializers.ModelSerializer):
     class Meta:
         model = Canteen
-        fields = ("id", "name") 
+        fields = ("id", "name", "location") 
 
 
 class ProductSerializer(serializers.ModelSerializer):

@@ -34,133 +34,388 @@ body {
 .top-container {
     display: flex;
     align-items: center;
-    gap: 10px;
-    justify-content: space-around;
-    border-bottom: solid 1px #957575;
+    gap: 16px;
+    justify-content: space-between;
+    border-bottom: 1px solid #edf2f7;
+    background: #ffffff;
     flex-wrap: nowrap;
-    padding: 15px 5px;
+    padding: 12px 18px;
 }
 
-
-.filter {
-    margin-left: 10px;
-    width: 30px;
-    height: 25px;
-    cursor: pointer;
-}
-
-.filter img {
-    object-fit: cover;
-    height: 100%;
-    width: 100%;
-
-}
-
-
-
-.search {
-    max-width: 700px;
-    flex-grow: 2;
-    padding: 5px 8px;
-    /* border: solid #AF0C3E 1px; */
-    border-radius: 3px;
+.search-bar-container {
+    flex: 1;
+    max-width: 580px;
     display: flex;
     align-items: center;
-    justify-content: space-around;
-    background-color: #ffe0e0;
-    cursor: pointer;
+    gap: 10px;
+    background: #f1f3f6;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 24px;
+    padding: 8px 16px;
+    transition: all 0.25s ease;
 }
 
-.search span {
-    width: 25px;
-    height: 20px;
-    cursor: pointer;
-
+.search-bar-container:hover {
+    background: #eaedf2;
+    border-color: #cbd5e1;
 }
 
+.search-bar-container:focus-within {
+    background: #ffffff;
+    border-color: #AF0C3E;
+    box-shadow: 0 4px 14px rgba(175, 12, 62, 0.12);
+}
 
-.search span img {
-    height: 100%;
+.search-icon-left {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+    flex-shrink: 0;
+    transition: color 0.2s ease;
+}
+
+.search-bar-container:focus-within .search-icon-left {
+    color: #AF0C3E;
+}
+
+.search-input-field {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 14.5px;
+    font-family: inherit;
+    color: #1e293b;
     width: 100%;
-    object-fit: cover;
-
-
 }
 
+.search-input-field::placeholder {
+    color: #94a3b8;
+    font-size: 14px;
+}
+
+.search-clear-btn {
+    background: #e2e8f0;
+    color: #64748b;
+    border: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+}
+
+.search-clear-btn:hover {
+    background: #cbd5e1;
+    color: #1e293b;
+}
+
+.orders,
 .cart {
-    margin-right: 10px;
-    width: 30px;
-    height: 30px;
+    position: relative;
+    width: 38px;
+    height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
     cursor: pointer;
 }
 
+.orders:hover,
+.cart:hover {
+    background: #f8fafc;
+    transform: scale(1.05);
+}
 
-.orders {
-    width: 30px;
-    height: 30px;
-    cursor: pointer;
+.cart-icon-link {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+}
+
+.cart-badge-count {
+    position: absolute;
+    top: -8px;
+    right: -10px;
+    background: #e74c3c;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 800;
+    min-width: 18px;
+    height: 18px;
+    line-height: 18px;
+    text-align: center;
+    border-radius: 10px;
+    padding: 0 4px;
+    box-shadow: 0 2px 6px rgba(231, 76, 60, 0.45);
+    pointer-events: none;
+    animation: cartBadgePop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes cartBadgePop {
+    0% { transform: scale(0.5); opacity: 0; }
+    70% { transform: scale(1.2); }
+    100% { transform: scale(1); opacity: 1; }
 }
 
 .cart img,
 .orders img {
-    object-fit: cover;
-    height: 100%;
-    width: 100%;
-
-}
-
-.search input {
-    padding: 5px 6px;
-    outline: none;
-    border: none;
-    font-size: 16px;
-    width: 95%;
-    background-color: transparent;
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
 }
 
 
-.search input::placeholder {
-    font-size: 16px;
-    color: #a39196;
-}
-
-
-/* filter  btn */
-
-.filter {
+/* Canteen Location Header in Top Bar (Swiggy/Zomato style) */
+.canteen-location-header {
     position: relative;
-    display: inline-block;
-    /* keeps filter tight around the icon */
-    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    max-width: 280px;
+    min-width: 170px;
+    flex-shrink: 0;
+    margin-left: 4px;
 }
 
-/* Dropdown hidden by default */
-.dropdown {
-    position: absolute;
-    top: 100%;
-    /* directly below the icon */
-    left: 50%;
-    transform: translateX(-50%) translateY(-10px);
-    /* center horizontally */
-    background: #fff;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
-    min-width: 160px;
+.canteen-location-btn {
+    background: transparent;
+    border: none;
+    padding: 3px 6px;
+    cursor: pointer;
+    text-align: left;
     display: flex;
     flex-direction: column;
-    opacity: 0;
-    pointer-events: none;
-    transition: all 0.3s ease;
-    z-index: 1000;
+    border-radius: 8px;
+    transition: background 0.2s ease;
+    width: 100%;
+    font-family: inherit;
 }
 
-/* Show only on hover */
-.filter:hover .dropdown {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-    /* smooth slide down */
-    pointer-events: auto;
+.canteen-location-btn:hover {
+    background: #f4f5f7;
+}
+
+.canteen-text-group {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.canteen-title-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.canteen-main-title {
+    font-size: 16px;
+    font-weight: 800;
+    color: #2d3436;
+    max-width: 220px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: -0.2px;
+    line-height: 1.25;
+}
+
+.canteen-chevron {
+    color: #4a4a4a;
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+    stroke-width: 2.8px;
+}
+
+.canteen-chevron.open {
+    transform: rotate(90deg);
+}
+
+.canteen-subtitle {
+    font-size: 12px;
+    font-weight: 500;
+    color: #7f8c8d;
+    max-width: 240px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 2px;
+    line-height: 1.2;
+}
+
+/* Canteen Dropdown Menu */
+.canteen-switcher-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    background: #ffffff;
+    border: 1px solid #eee;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+    min-width: 220px;
+    z-index: 1200;
+    overflow: hidden;
+    animation: dropdownFadeIn 0.2s ease;
+}
+
+@keyframes dropdownFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.switcher-header {
+    padding: 10px 14px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #888;
+    background: #fafafa;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.switcher-list {
+    display: flex;
+    flex-direction: column;
+    padding: 4px 0;
+    max-height: 220px;
+    overflow-y: auto;
+}
+
+.switcher-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.15s ease;
+    width: 100%;
+}
+
+.switcher-item:hover {
+    background: #fff4f6;
+}
+
+.switcher-item.selected {
+    background: #feeef2;
+}
+
+.switcher-item-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.switcher-item-name {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.switcher-item.selected .switcher-item-name {
+    color: #AF0C3E;
+    font-weight: 700;
+}
+
+.switcher-item-loc {
+    font-size: 11px;
+    color: #888;
+}
+
+.switcher-check {
+    font-size: 14px;
+    color: #AF0C3E;
+    font-weight: bold;
+}
+
+/* Category Filter Chips Bar (New Position) */
+.filter-chips-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 14px 10px 6px;
+    flex-wrap: wrap;
+}
+
+.filter-chip-pill {
+    background: #ffffff;
+    border: 1.5px solid #e2e8f0;
+    color: #475569;
+    font-size: 13.5px;
+    font-weight: 600;
+    padding: 7px 16px;
+    border-radius: 22px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.filter-chip-pill:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    transform: translateY(-1px);
+}
+
+.filter-chip-pill.active {
+    background: #2c3e50;
+    color: #ffffff;
+    border-color: #2c3e50;
+    box-shadow: 0 3px 8px rgba(44, 62, 80, 0.25);
+}
+
+.filter-chip-pill.veg.active {
+    background: #2e7d32;
+    color: #ffffff;
+    border-color: #2e7d32;
+    box-shadow: 0 3px 8px rgba(46, 125, 50, 0.25);
+}
+
+.filter-chip-pill.veg.active .food-type-icon {
+    background: #2e7d32;
+    border-color: #ffffff;
+}
+
+.filter-chip-pill.veg.active .food-type-dot {
+    background: #ffffff;
+}
+
+.filter-chip-pill.non-veg.active {
+    background: #c62828;
+    color: #ffffff;
+    border-color: #c62828;
+    box-shadow: 0 3px 8px rgba(198, 40, 40, 0.25);
+}
+
+.filter-chip-pill.non-veg.active .food-type-icon {
+    background: #c62828;
+    border-color: #ffffff;
+}
+
+.filter-chip-pill.non-veg.active .food-type-dot {
+    background: #ffffff;
 }
 
 /* Dropdown items */
@@ -222,13 +477,127 @@ body {
   position: absolute;
   top: 10px;
   left: 10px;
-  background: #e63946;
+  background: #e67e22;
   color: #fff;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 700;
   padding: 4px 8px;
-  border-radius: 14px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+  letter-spacing: 0.3px;
+}
+
+.stock-badge.low-stock {
+  background: #e67e22;
+}
+
+.stock-badge.out-of-stock {
+  background: #7f8c8d;
+}
+
+/* Redesigned semi-transparent category badge (no square) */
+.diet-pill-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 16px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  letter-spacing: 0.2px;
+  transition: all 0.2s ease;
+}
+
+.diet-pill-badge.veg {
+  background: rgba(232, 245, 233, 0.75);
+  color: #1b5e20;
+  border: 1px solid rgba(46, 125, 50, 0.35);
+}
+
+.diet-pill-badge.non-veg {
+  background: rgba(255, 235, 238, 0.75);
+  color: #b71c1c;
+  border: 1px solid rgba(198, 40, 40, 0.35);
+}
+
+.diet-pill-badge.other {
+  background: rgba(241, 245, 249, 0.75);
+  color: #334155;
+  border: 1px solid rgba(203, 213, 225, 0.5);
+}
+
+/* Simple soft round colored dot (NO SQUARE) */
+.diet-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.diet-dot.veg {
+  background: #2e7d32;
+  box-shadow: 0 0 4px rgba(46, 125, 50, 0.4);
+}
+
+.diet-dot.non-veg {
+  background: #c62828;
+  box-shadow: 0 0 4px rgba(198, 40, 40, 0.4);
+}
+
+/* Quick Diet Filter Chips */
+.menu-diet-filter-chips {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.diet-chip-btn {
+  background: #fff;
+  border: 1.5px solid #e0e0e0;
+  color: #555;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 20px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.diet-chip-btn:hover {
+  background: #f8f9fa;
+  border-color: #bbb;
+}
+
+.diet-chip-btn.active {
+  background: #2c3e50;
+  color: #fff;
+  border-color: #2c3e50;
+}
+
+.diet-chip-btn.veg.active {
+  background: #e8f5e9;
+  color: #2e7d32;
+  border-color: #2e7d32;
+}
+
+.diet-chip-btn.non-veg.active {
+  background: #ffebee;
+  color: #c62828;
+  border-color: #c62828;
 }
 
 /* Info */

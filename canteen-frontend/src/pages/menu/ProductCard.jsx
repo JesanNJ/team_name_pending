@@ -35,7 +35,7 @@ function isExpired(token) {
     }
 }
 
-export function ProductCard({ menu, canteenId, selectedType }) {
+export function ProductCard({ menu, canteenId, onAddToCartSuccess }) {
     const [quantity, setQuantity] = useState({});
 
     const handleAddToCart = async (product) => {
@@ -52,14 +52,15 @@ export function ProductCard({ menu, canteenId, selectedType }) {
                 { headers: { Authorization: `Bearer ${access}` } }
             );
             alert("Added to cart!");
+            if (onAddToCartSuccess) {
+                onAddToCartSuccess();
+            }
         } catch (err) {
             console.error(err);
             const msg = err.response?.data?.error || "Failed to add to cart.";
             alert(msg);
         }
     };
-
-    const filteredMenu = selectedType === "All" ? menu : menu.filter(item => item.product_type === selectedType);
 
     const handleIncrease = (id, maxStock) => {
         setQuantity((prev) => {
@@ -84,44 +85,82 @@ export function ProductCard({ menu, canteenId, selectedType }) {
 
     return (
         <>
-            {
-                filteredMenu.map((item) => {
-                    const isOutOfStock = Number(item.stock) <= 0;
-                    return (
-                        <div className="product-card" key={item.id}>
-                            <div className="img-container">
-                                <img src={item.product_url} alt={item.product_name}
-                                    className="product-img" />
-                                <span 
-                                    className={`stock-badge ${isOutOfStock ? "out-of-stock" : ""}`}
-                                    style={isOutOfStock ? { background: "#7f8c8d" } : {}}
+            {menu && menu.map((item) => {
+                const stockNum = Number(item.stock);
+                const isOutOfStock = stockNum <= 0;
+                const isLowStock = stockNum > 0 && stockNum <= 10;
+                const isVeg = item.product_type?.trim().toLowerCase() === "veg";
+                const isNonVeg =
+                    item.product_type?.trim().toLowerCase() === "non-veg" ||
+                    item.product_type?.trim().toLowerCase() === "nonveg";
+
+                return (
+                    <div className="product-card" key={item.id}>
+                        <div className="img-container">
+                            <img
+                                src={item.product_url}
+                                alt={item.product_name}
+                                className="product-img"
+                            />
+
+                            {/* Stock badge: ONLY displays when stock <= 10 */}
+                            {stockNum <= 10 && (
+                                <span
+                                    className={`stock-badge ${isOutOfStock ? "out-of-stock" : "low-stock"}`}
                                 >
-                                    {isOutOfStock ? "Out of Stock" : `Only ${item.stock} left`}
+                                    {isOutOfStock ? "Out of Stock" : `Only ${stockNum} left`}
                                 </span>
-                            </div>
+                            )}
 
-                            <div className="product-info">
-                                <h3 className="product-title">{item.product_name}</h3>
-                                <div className="price">₹ {Number(item.product_price).toFixed(2)}</div>
-                                <div className="qty-editor">
-                                    <button className="qty-btn" onClick={() => handleDecrease(item.id)} disabled={isOutOfStock}>-</button>
-                                    <span className="qty-value">{quantity[item.id] || 1}</span>
-                                    <button className="qty-btn" onClick={() => handleIncrease(item.id, item.stock)} disabled={isOutOfStock}>+</button>
-                                </div>
-
-                                <button 
-                                    className="add-btn" 
-                                    onClick={() => handleAddToCart(item)}
-                                    disabled={isOutOfStock}
-                                    style={isOutOfStock ? { background: "#95a5a6", cursor: "not-allowed" } : {}}
+                            {/* Redesigned semi-transparent category badge with no square */}
+                            {item.product_type && (
+                                <span
+                                    className={`diet-pill-badge ${
+                                        isVeg ? "veg" : isNonVeg ? "non-veg" : "other"
+                                    }`}
                                 >
-                                    {isOutOfStock ? "Out of Stock" : "Add to Cart"}
+                                    {isVeg && <span className="diet-dot veg"></span>}
+                                    {isNonVeg && <span className="diet-dot non-veg"></span>}
+                                    <span>{item.product_type}</span>
+                                </span>
+                            )}
+                        </div>
+
+                        <div className="product-info">
+                            <h3 className="product-title">{item.product_name}</h3>
+
+                            <div className="price">₹ {Number(item.product_price).toFixed(2)}</div>
+
+                            <div className="qty-editor">
+                                <button
+                                    className="qty-btn"
+                                    onClick={() => handleDecrease(item.id)}
+                                    disabled={isOutOfStock}
+                                >
+                                    -
+                                </button>
+                                <span className="qty-value">{quantity[item.id] || 1}</span>
+                                <button
+                                    className="qty-btn"
+                                    onClick={() => handleIncrease(item.id, item.stock)}
+                                    disabled={isOutOfStock}
+                                >
+                                    +
                                 </button>
                             </div>
+
+                            <button
+                                className="add-btn"
+                                onClick={() => handleAddToCart(item)}
+                                disabled={isOutOfStock}
+                                style={isOutOfStock ? { background: "#95a5a6", cursor: "not-allowed" } : {}}
+                            >
+                                {isOutOfStock ? "Out of Stock" : "Add to Cart"}
+                            </button>
                         </div>
-                    );
-                })
-            }
+                    </div>
+                );
+            })}
         </>
     );
 }
