@@ -21,9 +21,14 @@ export function OrderCard({ orders, openModal }) {
                                 </p>
                             </div>
                             <div className="order-footer">
-                                {console.log(order)}
                                 <span className="order-total">Total: ₹  {order.total_price && order.total_price.toFixed(2)}</span>
-                                <span className={`order-status completed ${order.status}`}>{order.status}</span>
+                                <span className={`order-status ${order.status?.toLowerCase() || 'pending'}`}>
+                                    {order.status === "prepared" || order.status === "ready"
+                                        ? "Ready for Pickup"
+                                        : order.status
+                                        ? order.status.charAt(0).toUpperCase() + order.status.slice(1)
+                                        : "Pending"}
+                                </span>
                             </div>
                             <div className="order-actions">
                                 <button className="view-btn" onClick={()=>openModal(order)}>View Details</button>

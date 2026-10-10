@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { AdminMenuSkeletonGrid } from "../../components/Skeleton/Skeleton";
 
 async function getAccessToken() {
     let access = localStorage.getItem("access");
@@ -41,7 +42,7 @@ export function AdminMenuSection() {
     const [canteens, setCanteens] = useState([]);
     const [selectedCanteenId, setSelectedCanteenId] = useState("");
     const [menuItems, setMenuItems] = useState([]);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [feedback, setFeedback] = useState({ message: "", type: "" });
 
     // Search and filters
@@ -82,10 +83,13 @@ export function AdminMenuSection() {
                 setCanteens(res.data);
                 if (res.data.length > 0) {
                     setSelectedCanteenId(res.data[0].id);
+                } else {
+                    setLoading(false);
                 }
             } catch (err) {
                 console.error("Failed to fetch canteens:", err);
                 showToast("Failed to load canteens", "error");
+                setLoading(false);
             }
         };
         fetchCanteens();
@@ -324,16 +328,29 @@ export function AdminMenuSection() {
                 <div className="canteen-selector-group">
                     <span className="selector-label">Select Canteen:</span>
                     <div className="canteen-pills">
-                        {canteens.map((canteen) => (
-                            <button
-                                key={canteen.id}
-                                type="button"
-                                className={`canteen-pill ${selectedCanteenId === canteen.id ? "active" : ""}`}
-                                onClick={() => setSelectedCanteenId(canteen.id)}
-                            >
-                                {canteen.name}
-                            </button>
-                        ))}
+                        {canteens.length === 0 ? (
+                            <div style={{ display: "flex", gap: "8px" }}>
+                                <div className="skeleton-box skeleton-shimmer" style={{ width: "90px", height: "34px", borderRadius: "20px" }} />
+                                <div className="skeleton-box skeleton-shimmer" style={{ width: "90px", height: "34px", borderRadius: "20px" }} />
+                                <div className="skeleton-box skeleton-shimmer" style={{ width: "90px", height: "34px", borderRadius: "20px" }} />
+                            </div>
+                        ) : (
+                            canteens.map((canteen) => (
+                                <button
+                                    key={canteen.id}
+                                    type="button"
+                                    className={`canteen-pill ${selectedCanteenId === canteen.id ? "active" : ""}`}
+                                    onClick={() => {
+                                        if (selectedCanteenId !== canteen.id) {
+                                            setLoading(true);
+                                            setSelectedCanteenId(canteen.id);
+                                        }
+                                    }}
+                                >
+                                    {canteen.name}
+                                </button>
+                            ))
+                        )}
                     </div>
                 </div>
 
@@ -421,7 +438,7 @@ export function AdminMenuSection() {
 
             {/* Items Grid */}
             {loading ? (
-                <div className="admin-menu-loading">Loading menu items...</div>
+                <AdminMenuSkeletonGrid count={6} />
             ) : filteredItems.length === 0 ? (
                 <div className="admin-menu-empty">
                     <p>No menu items found matching the selected filters.</p>

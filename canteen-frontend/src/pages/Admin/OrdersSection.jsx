@@ -1,10 +1,13 @@
+import React from 'react';
+import { AdminOrderSkeletonGrid } from '../../components/Skeleton/Skeleton';
 
-
-export function OrdersSection({ orders, handleMoveOrders }) {
+export function OrdersSection({ orders, loading, handleMoveOrders }) {
     return (
         <div className="section active" id="orders">
             <div className="order-board">
-                {orders &&
+                {loading ? (
+                    <AdminOrderSkeletonGrid count={6} />
+                ) : orders && orders.length > 0 ? (
                     orders.map((item) => {
                         return (
                             <div className="order-card" key={item.id}>
@@ -24,8 +27,11 @@ export function OrdersSection({ orders, handleMoveOrders }) {
                             </div>
                         )
                     })
-                }
-
+                ) : (
+                    <p style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px 0', color: '#666' }}>
+                        No pending orders.
+                    </p>
+                )}
             </div>
         </div>
     )

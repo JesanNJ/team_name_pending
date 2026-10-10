@@ -1,0 +1,416 @@
+/* =========================================================
+   Skeleton Loading Animation & Styles
+   ========================================================= */
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    #ebedf0 0%,
+    #e3e6ea 30%,
+    #eff2f5 50%,
+    #e3e6ea 70%,
+    #ebedf0 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 2.4s ease-in-out infinite;
+}
+
+/* Base Skeleton element */
+.skeleton-box {
+  border-radius: 4px;
+}
+
+/* =========================================================
+   1. Home Page - Canteen Choices Skeleton
+   ========================================================= */
+.canteen-choice-skeleton {
+  width: 100%;
+  height: 58px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.canteen-choice-skeleton .skeleton-text-inner {
+  width: 45%;
+  height: 18px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.45);
+}
+
+/* =========================================================
+   2. Menu Page - Product Card Skeleton
+   ========================================================= */
+.product-card-skeleton {
+  width: 250px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.07);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.product-card-skeleton .skeleton-img-box {
+  width: 100%;
+  height: 140px;
+  position: relative;
+}
+
+.product-card-skeleton .skeleton-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 75px;
+  height: 22px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.product-card-skeleton .skeleton-info {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.product-card-skeleton .skeleton-line-title {
+  width: 80%;
+  height: 18px;
+  border-radius: 4px;
+}
+
+.product-card-skeleton .skeleton-line-price {
+  width: 40%;
+  height: 16px;
+  border-radius: 4px;
+}
+
+.product-card-skeleton .skeleton-qty-box {
+  width: 100%;
+  height: 36px;
+  border-radius: 6px;
+  margin-top: 4px;
+}
+
+.product-card-skeleton .skeleton-btn-box {
+  width: 100%;
+  height: 38px;
+  border-radius: 6px;
+}
+
+/* =========================================================
+   3. Cart Page - Item & Summary Skeleton
+   ========================================================= */
+.cart-card-skeleton {
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.cart-card-skeleton .skeleton-cart-img {
+  width: 100%;
+  height: 160px;
+}
+
+.cart-card-skeleton .skeleton-cart-info {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cart-card-skeleton .skeleton-cart-title {
+  width: 75%;
+  height: 18px;
+  border-radius: 4px;
+}
+
+.cart-card-skeleton .skeleton-cart-price {
+  width: 35%;
+  height: 15px;
+  border-radius: 4px;
+}
+
+.cart-card-skeleton .skeleton-cart-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.cart-card-skeleton .skeleton-cart-qty {
+  width: 80px;
+  height: 28px;
+  border-radius: 4px;
+}
+
+.cart-card-skeleton .skeleton-cart-remove {
+  width: 65px;
+  height: 28px;
+  border-radius: 4px;
+}
+
+.cart-summary-skeleton {
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+  padding: 20px;
+  flex: 1;
+  min-width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cart-summary-skeleton .skeleton-summary-title {
+  width: 50%;
+  height: 22px;
+  border-radius: 4px;
+  margin-bottom: 6px;
+}
+
+.cart-summary-skeleton .skeleton-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cart-summary-skeleton .skeleton-summary-label {
+  width: 45%;
+  height: 16px;
+  border-radius: 4px;
+}
+
+.cart-summary-skeleton .skeleton-summary-val {
+  width: 25%;
+  height: 16px;
+  border-radius: 4px;
+}
+
+.cart-summary-skeleton .skeleton-summary-btn {
+  width: 100%;
+  height: 42px;
+  border-radius: 6px;
+  margin-top: 10px;
+}
+
+/* =========================================================
+   4. Orders Page - Order Card Skeleton
+   ========================================================= */
+.order-card-skeleton {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.order-card-skeleton .skeleton-order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.order-card-skeleton .skeleton-order-canteen {
+  width: 35%;
+  height: 16px;
+  border-radius: 4px;
+}
+
+.order-card-skeleton .skeleton-order-id {
+  width: 25%;
+  height: 16px;
+  border-radius: 4px;
+}
+
+.order-card-skeleton .skeleton-order-date {
+  width: 25%;
+  height: 14px;
+  border-radius: 4px;
+}
+
+.order-card-skeleton .skeleton-order-items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 0;
+}
+
+.order-card-skeleton .skeleton-item-line-1 {
+  width: 85%;
+  height: 14px;
+  border-radius: 4px;
+}
+
+.order-card-skeleton .skeleton-item-line-2 {
+  width: 55%;
+  height: 14px;
+  border-radius: 4px;
+}
+
+.order-card-skeleton .skeleton-order-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.order-card-skeleton .skeleton-order-total {
+  width: 35%;
+  height: 18px;
+  border-radius: 4px;
+}
+
+.order-card-skeleton .skeleton-order-badge {
+  width: 70px;
+  height: 24px;
+  border-radius: 12px;
+}
+
+.order-card-skeleton .skeleton-order-btn {
+  width: 100%;
+  height: 36px;
+  border-radius: 6px;
+}
+
+/* =========================================================
+   5. Admin Orders Skeleton (Board)
+   ========================================================= */
+.admin-order-skeleton {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 18px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-order-skeleton .skeleton-admin-order-id {
+  width: 40%;
+  height: 18px;
+  border-radius: 4px;
+}
+
+.admin-order-skeleton .skeleton-admin-canteen {
+  width: 60%;
+  height: 15px;
+  border-radius: 4px;
+}
+
+.admin-order-skeleton .skeleton-admin-items {
+  width: 85%;
+  height: 14px;
+  border-radius: 4px;
+}
+
+.admin-order-skeleton .skeleton-admin-btn {
+  width: 130px;
+  height: 34px;
+  border-radius: 6px;
+  margin-top: 6px;
+}
+
+/* =========================================================
+   6. Admin Menu Management Card Skeleton
+   ========================================================= */
+.admin-menu-skeleton-card {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #eef0f3;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-menu-skeleton-card .skeleton-admin-img {
+  width: 100%;
+  height: 170px;
+  position: relative;
+}
+
+.admin-menu-skeleton-card .skeleton-admin-body {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-menu-skeleton-card .skeleton-admin-title {
+  width: 70%;
+  height: 18px;
+  border-radius: 4px;
+}
+
+.admin-menu-skeleton-card .skeleton-admin-price {
+  width: 35%;
+  height: 16px;
+  border-radius: 4px;
+}
+
+.admin-menu-skeleton-card .skeleton-admin-stock-row {
+  width: 100%;
+  height: 34px;
+  border-radius: 6px;
+}
+
+.admin-menu-skeleton-card .skeleton-admin-actions-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.admin-menu-skeleton-card .skeleton-admin-actions-row div {
+  flex: 1;
+  height: 32px;
+  border-radius: 5px;
+}
+
+/* =========================================================
+   7. Admin Auth Checking Skeleton Layout
+   ========================================================= */
+.admin-auth-skeleton-wrap {
+  padding: 30px;
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.admin-auth-skeleton-header {
+  width: 280px;
+  height: 28px;
+  border-radius: 6px;
+  margin: 0 auto;
+}
+
+.admin-auth-skeleton-tabs {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin: 10px 0;
+}
+
+.admin-auth-skeleton-tab {
+  width: 110px;
+  height: 38px;
+  border-radius: 6px;
+}

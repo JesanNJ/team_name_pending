@@ -259,15 +259,17 @@ def orders_by_status(request, status=None):
     """
     Fetch orders by status. If no status provided, fetch all orders.
     """
-    valid_statuses = ["pending", "preparing", "delivered"]
+    valid_statuses = ["pending", "preparing", "prepared", "delivered", "ready"]
 
     if status and status not in valid_statuses:
         return Response({"error": "Invalid status"}, status=400)
 
-    if status:
-        orders = Order.objects.filter(status=status)
+    if status == "ready" or status == "prepared":
+        orders = Order.objects.filter(status__in=["prepared", "ready"]).order_by("-id")
+    elif status:
+        orders = Order.objects.filter(status=status).order_by("-id")
     else:
-        orders = Order.objects.all()
+        orders = Order.objects.all().order_by("-id")
 
     serializer = OrderSerializer(orders, many=True)
     return Response(serializer.data)
@@ -277,9 +279,11 @@ def orders_by_status(request, status=None):
 @permission_classes([IsAuthenticated])
 def move_order(request, status, order_id):
     order = get_object_or_404(Order, id=order_id)
-    order.status = status
+    # Normalize 'ready' to 'prepared'
+    new_status = "prepared" if status == "ready" else status
+    order.status = new_status
     order.save()
-    return Response({"message": f"Order {order.id} moved to {status}"})
+    return Response({"message": f"Order {order.id} moved to {new_status}"})
 
 
 # Helper function to check admin rights

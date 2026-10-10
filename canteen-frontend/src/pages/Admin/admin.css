@@ -114,6 +114,32 @@ header {
     background: #2980b9;
 }
 
+.btn-move.ready {
+    background: #e67e22;
+}
+
+.btn-move.ready:hover {
+    background: #d35400;
+}
+
+.btn-move.delivered-btn {
+    background: #27ae60;
+}
+
+.btn-move.delivered-btn:hover {
+    background: #219653;
+}
+
+.order-status-badge.ready {
+    background: #fdf2e9;
+    color: #e67e22;
+    border: 1px solid #f8c471;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 12px;
+}
+
 @keyframes fadeIn {
     from {
         opacity: 0;

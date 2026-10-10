@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom"
 import jwt_decode from "jwt-decode";
 import axios from "axios";
+import { CanteenChoiceSkeleton } from "../../components/Skeleton/Skeleton";
 
 
 
@@ -50,6 +51,7 @@ export function Home() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [canteens, setCanteens] = useState([]);
+  const [loadingCanteens, setLoadingCanteens] = useState(true);
   let username = "";
   const location = useLocation();
   const usernameFromState = location.state?.username;
@@ -73,12 +75,15 @@ export function Home() {
 
   useEffect(() => {
     const fetchCanteens = async () => {
+      setLoadingCanteens(true);
       try {
         const res = await fetch("http://127.0.0.1:8000/api/canteens/");
         const data = await res.json();
         setCanteens(data);
       } catch (err) {
         console.error("Failed to fetch canteens:", err);
+      } finally {
+        setLoadingCanteens(false);
       }
     };
     fetchCanteens();
@@ -208,17 +213,20 @@ export function Home() {
           <div className="canteen-choices">
             <span>Choose your Canteen</span>
             <ul>
-              {canteens.map((canteen) => {
-                return (
-                  <li key={canteen.id}>
-                    <button
-                      onClick={() => handleCanteenClick(canteen)}>
-                      {canteen.name}
-                    </button>
-                  </li>
-                );
-              })}
-
+              {loadingCanteens ? (
+                <CanteenChoiceSkeleton count={3} />
+              ) : (
+                canteens.map((canteen) => {
+                  return (
+                    <li key={canteen.id}>
+                      <button
+                        onClick={() => handleCanteenClick(canteen)}>
+                        {canteen.name}
+                      </button>
+                    </li>
+                  );
+                })
+              )}
             </ul>
 
           </div>

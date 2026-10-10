@@ -5,8 +5,10 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { OrdersSection } from './OrdersSection';
 import { PreparingSection } from './PreparingSection';
+import { PreparedSection } from './PreparedSection';
 import { DeliveredSection } from './DeliveredSection';
 import { AdminMenuSection } from './AdminMenuSection';
+import { AdminAuthSkeleton } from '../../components/Skeleton/Skeleton';
 
 
 async function getAccessToken() {
@@ -50,6 +52,7 @@ export function Admin() {
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState(location.state?.tab || "pending");
     const [orders, setOrders] = useState([]);
+    const [loadingOrders, setLoadingOrders] = useState(true);
     const [authChecking, setAuthChecking] = useState(true);
     const [isAdmin, setIsAdmin] = useState(false);
 
@@ -83,6 +86,7 @@ export function Admin() {
         if (activeTab === "menu" || !isAdmin) return;
 
         const fetchOrders = async () => {
+            setLoadingOrders(true);
             try {
                 const access = await getAccessToken(); // await the token
                 const res = await axios.get(
@@ -96,6 +100,8 @@ export function Admin() {
                 setOrders(res.data);
             } catch (err) {
                 console.error("Error fetching orders:", err);
+            } finally {
+                setLoadingOrders(false);
             }
         };
 
@@ -131,9 +137,8 @@ export function Admin() {
         return (
             <>
                 <Header />
-                <div style={{ textAlign: "center", padding: "60px 20px", fontSize: "18px", color: "#666" }}>
-                    Verifying admin credentials...
-                </div>
+                <header>Admin Management Portal</header>
+                <AdminAuthSkeleton />
             </>
         );
     }
@@ -164,12 +169,17 @@ export function Admin() {
                 <div
                     className={`tab ${activeTab === "pending" ? "active" : ""}`}
                     onClick={() => setActiveTab("pending")}>
-                    Orders
+                    Pending Orders
                 </div>
                 <div
                     className={`tab ${activeTab === "preparing" ? "active" : ""}`}
                     onClick={() => setActiveTab("preparing")}>
                     Preparing
+                </div>
+                <div
+                    className={`tab ${activeTab === "prepared" ? "active" : ""}`}
+                    onClick={() => setActiveTab("prepared")}>
+                    Ready to Pickup
                 </div>
                 <div
                     className={`tab ${activeTab === "delivered" ? "active" : ""}`}
@@ -183,9 +193,10 @@ export function Admin() {
                 </div>
             </div>
 
-            {activeTab === "pending" && <OrdersSection orders={orders} handleMoveOrders={handleMoveOrders} />}
-            {activeTab === "preparing" && <PreparingSection orders={orders} handleMoveOrders={handleMoveOrders} />}
-            {activeTab === "delivered" && <DeliveredSection orders={orders} />}
+            {activeTab === "pending" && <OrdersSection orders={orders} loading={loadingOrders} handleMoveOrders={handleMoveOrders} />}
+            {activeTab === "preparing" && <PreparingSection orders={orders} loading={loadingOrders} handleMoveOrders={handleMoveOrders} />}
+            {activeTab === "prepared" && <PreparedSection orders={orders} loading={loadingOrders} handleMoveOrders={handleMoveOrders} />}
+            {activeTab === "delivered" && <DeliveredSection orders={orders} loading={loadingOrders} />}
             {activeTab === "menu" && <AdminMenuSection />}
 
 

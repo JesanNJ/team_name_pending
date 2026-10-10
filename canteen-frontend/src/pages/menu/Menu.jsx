@@ -9,11 +9,13 @@ import { useEffect, useState } from "react";
 import "./menu.css";
 import FilterMenu from "./FilterMenu";
 import axios from "axios";
+import { ProductSkeletonGrid } from "../../components/Skeleton/Skeleton";
 
 
 export function Menu() {
     const { canteenId } = useParams();
     const [menu, setMenu] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [selectedType, setSelectedType] = useState("All");
     // 🆕 For search results
@@ -23,6 +25,7 @@ export function Menu() {
     useEffect(() => {
         if (!canteenId) return;
 
+        setLoading(true);
         axios
             .get(`http://127.0.0.1:8000/api/canteens/${canteenId}/menu/`)
             .then((res) => {
@@ -30,7 +33,9 @@ export function Menu() {
             })
             .catch((err) => {
                 setError("Failed to load menu", err);
-
+            })
+            .finally(() => {
+                setLoading(false);
             });
     }, [canteenId]);
 
@@ -86,10 +91,18 @@ export function Menu() {
             <section className="section-2">
                 <div className="products-container">
 
-                    {searchResults.length > 0 ? (
+                    {loading ? (
+                        <ProductSkeletonGrid count={8} />
+                    ) : searchResults.length > 0 ? (
                         <ProductCard menu={searchResults} canteenId={canteenId} selectedType={selectedType} />
                     ) : searchTerm.trim() !== "" ? (
-                        <p>No items found for "{searchTerm}"</p>
+                        <p style={{ gridColumn: "1 / -1", textAlign: "center", padding: "40px 0", color: "#666" }}>
+                            No items found for "{searchTerm}"
+                        </p>
+                    ) : menu.length === 0 ? (
+                        <p style={{ gridColumn: "1 / -1", textAlign: "center", padding: "40px 0", color: "#666" }}>
+                            No menu items available at the moment.
+                        </p>
                     ) : (
                         <ProductCard menu={menu} canteenId={canteenId} selectedType={selectedType} />
                     )}

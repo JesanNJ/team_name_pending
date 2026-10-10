@@ -74,6 +74,7 @@ class Order(models.Model):
     STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('preparing', 'Preparing'),
+        ('prepared', 'Prepared / Ready to Pickup'),
         ('delivered', 'Delivered'),
     ]
     user = models.ForeignKey(User, on_delete=models.CASCADE)

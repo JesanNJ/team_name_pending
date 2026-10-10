@@ -5,6 +5,7 @@ import { PaymentSummary } from './PaymentSummary';
 import { useParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import { CartSkeletonList, CartSummarySkeleton } from '../../components/Skeleton/Skeleton';
 
 
 
@@ -45,21 +46,24 @@ function isExpired(token) {
 
 export function Cart() {
     const { canteenId } = useParams();
-
-
-    const [cartData, setCartData] = useState([])
-
+    const [cartData, setCartData] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-
         const getCartData = async () => {
-            const access = await getAccessToken();
-            const response = await axios.get(`http://127.0.0.1:8000/api/cart/view/${canteenId}`,
-                { headers: { Authorization: `Bearer ${access}` } })
-            setCartData(response.data)
-
-        }
-        getCartData()
+            setLoading(true);
+            try {
+                const access = await getAccessToken();
+                const response = await axios.get(`http://127.0.0.1:8000/api/cart/view/${canteenId}`,
+                    { headers: { Authorization: `Bearer ${access}` } });
+                setCartData(response.data);
+            } catch (err) {
+                console.error("Failed to load cart:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        getCartData();
     }, [canteenId]);
 
 
@@ -72,11 +76,30 @@ export function Cart() {
                 <h2 className="cart-title">Your Cart</h2>
                 <div className="cart-layout">
                     <div className="cart-row-container">
-                        <CartCard canteenId={canteenId} cartData={cartData} setCartData={setCartData} />
-                    
+                        {loading ? (
+                            <CartSkeletonList count={3} />
+                        ) : !cartData.items || cartData.items.length === 0 ? (
+                            <div style={{
+                                gridColumn: "1 / -1",
+                                padding: "40px 20px",
+                                textAlign: "center",
+                                background: "#fff",
+                                borderRadius: "10px",
+                                color: "#666",
+                                boxShadow: "0 2px 8px rgba(0,0,0,0.05)"
+                            }}>
+                                🛒 Your cart is empty. Add some delicious items from the menu!
+                            </div>
+                        ) : (
+                            <CartCard canteenId={canteenId} cartData={cartData} setCartData={setCartData} />
+                        )}
                     </div>
 
-                    <PaymentSummary cartData={cartData} setCartData={setCartData} canteenId={canteenId} getAccessToken={getAccessToken} />
+                    {loading ? (
+                        <CartSummarySkeleton />
+                    ) : (
+                        <PaymentSummary cartData={cartData} setCartData={setCartData} canteenId={canteenId} getAccessToken={getAccessToken} />
+                    )}
 
                     <div className="payment-modal" id="paymentModal">
                         <div className="payment-content">

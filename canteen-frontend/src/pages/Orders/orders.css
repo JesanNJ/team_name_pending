@@ -71,8 +71,20 @@ body{
   font-size: 12px;
 }
 
-.order-status.completed {
+.order-status.completed,
+.order-status.delivered {
   background: #2ecc71;
+}
+
+.order-status.preparing {
+  background: #3498db;
+}
+
+.order-status.prepared,
+.order-status.ready {
+  background: #e67e22;
+  box-shadow: 0 2px 6px rgba(230, 126, 34, 0.35);
+  font-weight: 600;
 }
 
 .order-status.pending {
