@@ -95,23 +95,29 @@ export function AdminMenuSection() {
         fetchCanteens();
     }, []);
 
-    // Fetch menu items whenever selected canteen changes
+    // Fetch menu items whenever selected canteen or category filter changes (via backend API call)
     useEffect(() => {
         if (!selectedCanteenId) return;
-        fetchMenu(selectedCanteenId);
-    }, [selectedCanteenId]);
+        fetchMenu(selectedCanteenId, categoryFilter);
+    }, [selectedCanteenId, categoryFilter]);
 
     const showToast = (message, type = "success") => {
         setFeedback({ message, type });
         setTimeout(() => setFeedback({ message: "", type: "" }), 4000);
     };
 
-    const fetchMenu = async (canteenId) => {
+    const fetchMenu = async (canteenId, category = categoryFilter) => {
+        if (!canteenId) return;
         setLoading(true);
         try {
             const token = await getAccessToken();
+            const params = {};
+            if (category && category !== "All") {
+                params.category = category;
+            }
             const res = await axios.get(`http://127.0.0.1:8000/api/admin/menu/${canteenId}/`, {
                 headers: { Authorization: `Bearer ${token}` },
+                params: params,
             });
             setMenuItems(res.data);
             setStockEdits({});
@@ -242,7 +248,7 @@ export function AdminMenuSection() {
 
             showToast(res.data.message || "Item added successfully!", "success");
             setShowAddModal(false);
-            fetchMenu(selectedCanteenId);
+            fetchMenu(selectedCanteenId, categoryFilter);
         } catch (err) {
             console.error("Failed to add menu item:", err);
             const msg = err.response?.data?.error || "Failed to add menu item";
@@ -285,18 +291,16 @@ export function AdminMenuSection() {
 
             showToast(res.data.message || "Item updated successfully!", "success");
             setEditingItem(null);
-            fetchMenu(selectedCanteenId);
+            fetchMenu(selectedCanteenId, categoryFilter);
         } catch (err) {
             console.error("Failed to update menu item:", err);
             showToast("Failed to update menu item", "error");
         }
     };
 
-    // Filter items by search, category, and status (active vs inactive)
+    // Filter items by status (active vs inactive) and search query
+    // Note: Category filtering is handled directly via API request to backend
     const filteredItems = menuItems.filter((item) => {
-        const matchesCategory =
-            categoryFilter === "All" || item.product_type === categoryFilter;
-
         const matchesStatus =
             statusFilter === "All"
                 ? true
@@ -308,7 +312,7 @@ export function AdminMenuSection() {
             item.product_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             (item.product_code && item.product_code.toLowerCase().includes(searchTerm.toLowerCase()));
 
-        return matchesCategory && matchesStatus && matchesSearch;
+        return matchesStatus && matchesSearch;
     });
 
     const activeCanteenObj = canteens.find((c) => c.id === selectedCanteenId);

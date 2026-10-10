@@ -10,7 +10,7 @@ export function CancelledSection({ orders, loading }) {
                 ) : orders && orders.length > 0 ? (
                     orders.map((item) => {
                         return (
-                            <div className="order-card cancelled-order-card" key={item.id} style={{ opacity: 0.9, borderLeft: "4px solid #e74c3c" }}>
+                            <div className="order-card cancelled-order-card" key={item.id}>
                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                                     <strong>Order #{item.id}</strong>
                                     <span className="order-status-badge cancelled" style={{

@@ -1,16 +1,14 @@
 import './admin.css';
 import { Header } from '../../components/Header';
-import { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useEffect, useState, useCallback } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { OrdersSection } from './OrdersSection';
 import { PreparingSection } from './PreparingSection';
 import { PreparedSection } from './PreparedSection';
 import { DeliveredSection } from './DeliveredSection';
 import { CancelledSection } from './CancelledSection';
-import { AdminMenuSection } from './AdminMenuSection';
 import { AdminAuthSkeleton } from '../../components/Skeleton/Skeleton';
-
 
 async function getAccessToken() {
     let access = localStorage.getItem("access");
@@ -46,16 +44,30 @@ function isExpired(token) {
     }
 }
 
-
-
 export function Admin() {
-    const location = useLocation();
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState(location.state?.tab || "pending");
+    const [searchParams, setSearchParams] = useSearchParams();
+
+    // Use URL search query parameter for activeTab (nuqs / URL state)
+    const validTabs = ["pending", "preparing", "prepared", "delivered", "cancelled"];
+    const queryTab = searchParams.get("tab");
+    const activeTab = validTabs.includes(queryTab) ? queryTab : "pending";
+
+    const setActiveTab = (tab) => {
+        setSearchParams({ tab });
+    };
+
     const [orders, setOrders] = useState([]);
     const [loadingOrders, setLoadingOrders] = useState(true);
     const [authChecking, setAuthChecking] = useState(true);
     const [isAdmin, setIsAdmin] = useState(false);
+    const [orderCounts, setOrderCounts] = useState({
+        pending: 0,
+        preparing: 0,
+        prepared: 0,
+        delivered: 0,
+        cancelled: 0,
+    });
 
     // Verify admin privileges on mount
     useEffect(() => {
@@ -83,13 +95,32 @@ export function Admin() {
         checkAdminStatus();
     }, []);
 
+    // Fetch order counts by status (numbers/counts for each tab)
+    const fetchOrderCounts = useCallback(async () => {
+        try {
+            const access = await getAccessToken();
+            const res = await axios.get("http://127.0.0.1:8000/api/orders/counts/", {
+                headers: { Authorization: `Bearer ${access}` },
+            });
+            setOrderCounts(res.data);
+        } catch (err) {
+            console.error("Error fetching order counts:", err);
+        }
+    }, []);
+
     useEffect(() => {
-        if (activeTab === "menu" || !isAdmin) return;
+        if (!isAdmin) return;
+        fetchOrderCounts();
+    }, [isAdmin, fetchOrderCounts]);
+
+    // Fetch orders for active tab
+    useEffect(() => {
+        if (!isAdmin) return;
 
         const fetchOrders = async () => {
             setLoadingOrders(true);
             try {
-                const access = await getAccessToken(); // await the token
+                const access = await getAccessToken();
                 const res = await axios.get(
                     `http://127.0.0.1:8000/api/orders/${activeTab}/`,
                     {
@@ -107,15 +138,11 @@ export function Admin() {
         };
 
         fetchOrders();
-
     }, [activeTab, isAdmin]);
 
-
-
-
-    const handleMoveOrders = async (orderId,newStatus) => {
+    const handleMoveOrders = async (orderId, newStatus) => {
         try {
-            const access = await getAccessToken(); // your JWT token
+            const access = await getAccessToken();
             const res = await axios.post(
                 `http://127.0.0.1:8000/api/orders/move/${newStatus}/${orderId}/`,
                 {},
@@ -124,11 +151,14 @@ export function Admin() {
                 }
             );
             alert(res.data.message);
-    
-            // Optionally, update local state so UI reflects the change
+
+            // Update local orders list
             setOrders((prevOrders) =>
                 prevOrders.filter((order) => order.id !== orderId)
             );
+
+            // Refresh order counts across all statuses
+            fetchOrderCounts();
         } catch (err) {
             console.error("Failed to move order:", err);
         }
@@ -138,7 +168,9 @@ export function Admin() {
         return (
             <>
                 <Header />
-                <header>Admin Management Portal</header>
+                <header className="admin-header-bar">
+                    <span className="admin-header-title">Admin Management Portal</span>
+                </header>
                 <AdminAuthSkeleton />
             </>
         );
@@ -164,38 +196,40 @@ export function Admin() {
     return (
         <>
             <Header />
-            <header>Admin Management Portal</header>
+            <header className="admin-header-bar">
+                <span className="admin-header-title">Admin Management Portal</span>
+            </header>
 
             <div className="tabs">
                 <div
                     className={`tab ${activeTab === "pending" ? "active" : ""}`}
                     onClick={() => setActiveTab("pending")}>
                     Pending Orders
+                    <span className="tab-count-badge">{orderCounts.pending ?? 0}</span>
                 </div>
                 <div
                     className={`tab ${activeTab === "preparing" ? "active" : ""}`}
                     onClick={() => setActiveTab("preparing")}>
                     Preparing
+                    <span className="tab-count-badge preparing">{orderCounts.preparing ?? 0}</span>
                 </div>
                 <div
                     className={`tab ${activeTab === "prepared" ? "active" : ""}`}
                     onClick={() => setActiveTab("prepared")}>
                     Ready to Pickup
+                    <span className="tab-count-badge prepared">{orderCounts.prepared ?? 0}</span>
                 </div>
                 <div
                     className={`tab ${activeTab === "delivered" ? "active" : ""}`}
                     onClick={() => setActiveTab("delivered")}>
                     Delivered
+                    <span className="tab-count-badge delivered">{orderCounts.delivered ?? 0}</span>
                 </div>
                 <div
                     className={`tab ${activeTab === "cancelled" ? "active" : ""}`}
                     onClick={() => setActiveTab("cancelled")}>
                     Cancelled
-                </div>
-                <div
-                    className={`tab ${activeTab === "menu" ? "active" : ""}`}
-                    onClick={() => setActiveTab("menu")}>
-                    🍽️ Manage Menu
+                    <span className="tab-count-badge cancelled">{orderCounts.cancelled ?? 0}</span>
                 </div>
             </div>
 
@@ -204,11 +238,6 @@ export function Admin() {
             {activeTab === "prepared" && <PreparedSection orders={orders} loading={loadingOrders} handleMoveOrders={handleMoveOrders} />}
             {activeTab === "delivered" && <DeliveredSection orders={orders} loading={loadingOrders} />}
             {activeTab === "cancelled" && <CancelledSection orders={orders} loading={loadingOrders} />}
-            {activeTab === "menu" && <AdminMenuSection />}
-
-
-
-
         </>
-    )
-}
+    );
+}

@@ -7,6 +7,7 @@ import { Menu } from './pages/menu/Menu';
 import { Cart } from './pages/Cart/Cart';
 import { Orders } from './pages/Orders/Orders';
 import { Admin } from './pages/Admin/Admin';
+import { AdminMenuPage } from './pages/Admin/AdminMenuPage';
 
 
 function App() {
@@ -21,6 +22,7 @@ function App() {
         <Route path='/cart/:canteenId' element={<Cart />} />
         <Route path='/orders' element={<Orders />} />
         <Route path='/admin' element={<Admin />} />
+        <Route path='/admin/menu' element={<AdminMenuPage />} />
       </Routes>
      
     </>
