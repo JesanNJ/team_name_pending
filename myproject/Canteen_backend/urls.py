@@ -1,6 +1,7 @@
 from django.urls import path
 from .views import register,MyTokenObtainPairView,logout_and_blacklist, get_canteens, canteen_menu , move_order,update_cart_item
 from .views import add_to_cart, view_cart, place_order, user_orders, remove_from_cart,current_user,orders_by_status
+from .views import admin_canteen_menu, admin_add_menu_item, admin_update_menu_item, admin_delete_menu_item, admin_toggle_menu_item
 from rest_framework_simplejwt.views import TokenRefreshView
 
 urlpatterns = [
@@ -19,6 +20,13 @@ urlpatterns = [
     # for admin
     path("current-user/",current_user, name="current_user"),
     path("orders/<str:status>/", orders_by_status,name="moving-reg-to-orders"),
-    path("orders/move/<str:status>/<int:order_id>/",move_order, name="move_order"),   
+    path("orders/move/<str:status>/<int:order_id>/",move_order, name="move_order"),
+    # for admin menu management
+    path("admin/menu/<uuid:canteen_id>/", admin_canteen_menu, name="admin_canteen_menu"),
+    path("admin/menu/add/", admin_add_menu_item, name="admin_add_menu_item"),
+    path("admin/menu/update/<int:menu_id>/", admin_update_menu_item, name="admin_update_menu_item"),
+    path("admin/menu/toggle/<int:menu_id>/", admin_toggle_menu_item, name="admin_toggle_menu_item"),
+    path("admin/menu/delete/<int:menu_id>/", admin_delete_menu_item, name="admin_delete_menu_item"),
 ]
+
 

@@ -180,8 +180,12 @@ export function Home() {
 
           <div className="control-btns">
             {
-              user && user.profile.role === "admin" &&
-              <button className="admin" onClick={redirectToAdimin}>Admin Panel</button>
+              user && (user.profile?.role === "admin" || user.username?.toLowerCase() === "admin") && (
+                <>
+                  <button className="admin" onClick={redirectToAdimin}>Admin Orders</button>
+                  <button className="admin" style={{ backgroundColor: "#27ae60" }} onClick={() => navigate('/admin', { state: { tab: 'menu' } })}>Manage Menu</button>
+                </>
+              )
             }
 
             <button className="logout" onClick={handleLogout} disabled={loading}>

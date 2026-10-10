@@ -174,3 +174,850 @@ header {
     color: red;
     font-weight: 100;
 }
+
+/* ===================================================
+   Admin Menu Management Styles
+   =================================================== */
+
+.admin-menu-section {
+    padding: 24px 32px;
+    max-width: 1350px;
+    margin: 0 auto;
+}
+
+/* Toast Notifications */
+.admin-toast {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    padding: 14px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    color: #fff;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+    z-index: 9999;
+    animation: toastSlide 0.3s ease;
+}
+
+.admin-toast.success {
+    background: #27ae60;
+}
+
+.admin-toast.error {
+    background: #e74c3c;
+}
+
+@keyframes toastSlide {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Header & Canteen Picker */
+.admin-menu-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 20px;
+    background: #fff;
+    padding: 18px 24px;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.canteen-selector-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.selector-label {
+    font-weight: 700;
+    color: #2c3e50;
+    font-size: 15px;
+}
+
+.canteen-pills {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.canteen-pill {
+    padding: 9px 18px;
+    border: 1.5px solid #dce2e6;
+    background: #fff;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    color: #555;
+    transition: all 0.2s ease;
+}
+
+.canteen-pill:hover {
+    border-color: #3498db;
+    color: #3498db;
+}
+
+.canteen-pill.active {
+    background: #3498db;
+    color: #fff;
+    border-color: #3498db;
+    box-shadow: 0 2px 8px rgba(52, 152, 219, 0.35);
+}
+
+.btn-add-item {
+    background: linear-gradient(135deg, #27ae60, #2ecc71);
+    color: #fff;
+    border: none;
+    padding: 11px 22px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    box-shadow: 0 3px 10px rgba(39, 174, 96, 0.3);
+    transition: all 0.2s ease;
+}
+
+.btn-add-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 14px rgba(39, 174, 96, 0.4);
+}
+
+/* Filters & Search */
+.admin-menu-filters {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.menu-search-box {
+    position: relative;
+    flex: 1;
+    min-width: 260px;
+    max-width: 450px;
+}
+
+.menu-search-box input {
+    width: 100%;
+    padding: 11px 36px 11px 16px;
+    border-radius: 8px;
+    border: 1.5px solid #dce2e6;
+    font-size: 14px;
+    background: #fff;
+    outline: none;
+    transition: border 0.2s ease;
+    box-sizing: border-box;
+}
+
+.menu-search-box input:focus {
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.15);
+}
+
+.clear-search {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #999;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.category-filter-chips {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.category-chip {
+    padding: 7px 14px;
+    border: 1px solid #dce2e6;
+    background: #fff;
+    border-radius: 16px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #666;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.category-chip:hover {
+    background: #f1f4f8;
+}
+
+.category-chip.active {
+    background: #2c3e50;
+    color: #fff;
+    border-color: #2c3e50;
+}
+
+/* Stats Banner */
+.menu-stats-banner {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 20px;
+}
+
+.menu-stats-banner strong {
+    color: #2c3e50;
+}
+
+/* Grid & Cards */
+.admin-menu-loading,
+.admin-menu-empty {
+    text-align: center;
+    padding: 60px 20px;
+    background: #fff;
+    border-radius: 12px;
+    color: #777;
+    font-size: 16px;
+}
+
+.admin-menu-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+    gap: 24px;
+}
+
+.admin-menu-card {
+    background: #fff;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.07);
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid #edf2f7;
+}
+
+.admin-menu-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.12);
+}
+
+.card-top-image {
+    position: relative;
+    width: 100%;
+    height: 170px;
+    background: #f0f3f6;
+    overflow: hidden;
+}
+
+.card-top-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.admin-menu-card:hover .card-top-image img {
+    transform: scale(1.04);
+}
+
+.category-tag {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #fff;
+    background: #34495e;
+}
+
+.category-tag.veg { background: #27ae60; }
+.category-tag.non-veg { background: #e74c3c; }
+.category-tag.beverages { background: #2980b9; }
+.category-tag.snacks { background: #e67e22; }
+.category-tag.meals { background: #8e44ad; }
+
+.stock-status-pill {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+}
+
+.stock-status-pill.stock-ok { background: #27ae60; }
+.stock-status-pill.stock-low { background: #f39c12; }
+.stock-status-pill.stock-out { background: #c0392b; }
+
+.card-body {
+    padding: 16px 18px 20px 18px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.card-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.item-title {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 700;
+    color: #2c3e50;
+}
+
+.item-code {
+    background: #ecf0f1;
+    color: #7f8c8d;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.item-price {
+    font-size: 18px;
+    font-weight: 800;
+    color: #27ae60;
+    margin-bottom: 14px;
+}
+
+/* Stock Stepper */
+.stock-control-row {
+    background: #f8fafc;
+    padding: 10px 12px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    border: 1px solid #eef2f5;
+}
+
+.stock-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #666;
+}
+
+.stock-stepper {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.stock-stepper button {
+    background: #fff;
+    border: 1px solid #ccd1d9;
+    border-radius: 4px;
+    padding: 3px 7px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    color: #444;
+    transition: background 0.15s;
+}
+
+.stock-stepper button:hover {
+    background: #e4e7ea;
+}
+
+.stock-stepper input {
+    width: 48px;
+    text-align: center;
+    border: 1px solid #ccd1d9;
+    border-radius: 4px;
+    padding: 4px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.btn-save-stock {
+    background: #27ae60;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    padding: 5px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-left: auto;
+}
+
+
+
+/* ===================================================
+   Modals
+   =================================================== */
+
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(3px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    padding: 20px;
+    animation: fadeIn 0.2s ease;
+}
+
+.modal-content {
+    background: #fff;
+    border-radius: 14px;
+    width: 100%;
+    max-width: 520px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+    animation: scaleUp 0.25s ease;
+}
+
+@keyframes scaleUp {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.modal-header {
+    background: #2c3e50;
+    color: #fff;
+    padding: 16px 22px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 20px;
+    cursor: pointer;
+    opacity: 0.8;
+}
+
+.modal-close:hover {
+    opacity: 1;
+}
+
+.modal-form {
+    padding: 22px;
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #34495e;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 6px;
+    border: 1.5px solid #dce2e6;
+    font-size: 14px;
+    box-sizing: border-box;
+    outline: none;
+    transition: border 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    border-color: #3498db;
+}
+
+.input-disabled {
+    background: #f8fafc;
+    color: #7f8c8d;
+    cursor: not-allowed;
+}
+
+.form-row {
+    display: flex;
+    gap: 12px;
+}
+
+.flex-1 { flex: 1; }
+.flex-2 { flex: 2; }
+
+.image-preview-box {
+    margin-bottom: 16px;
+    padding: 10px;
+    background: #f8fafc;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.image-preview-box span {
+    display: block;
+    font-size: 12px;
+    color: #777;
+    margin-bottom: 6px;
+}
+
+.image-preview-box img {
+    max-height: 110px;
+    border-radius: 6px;
+    object-fit: cover;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 22px;
+}
+
+.btn-modal-cancel {
+    padding: 10px 18px;
+    border-radius: 6px;
+    border: 1px solid #ccd1d9;
+    background: #fff;
+    font-weight: 600;
+    cursor: pointer;
+    color: #555;
+}
+
+.btn-modal-cancel:hover {
+    background: #f5f7fa;
+}
+
+.btn-modal-submit {
+    padding: 10px 22px;
+    border-radius: 6px;
+    border: none;
+    background: #3498db;
+    color: #fff;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-modal-submit:hover {
+    background: #2980b9;
+}
+
+/* ===================================================
+   Admin Access Denied Screen
+   =================================================== */
+
+.admin-access-denied {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 80px 20px;
+}
+
+.access-denied-box {
+    background: #fff;
+    border-radius: 14px;
+    padding: 40px 32px;
+    text-align: center;
+    max-width: 480px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.09);
+    border: 1px solid #f2dede;
+}
+
+.access-denied-box h2 {
+    color: #c0392b;
+    margin-top: 0;
+    margin-bottom: 12px;
+}
+
+.access-denied-box p {
+    color: #555;
+    font-size: 15px;
+    line-height: 1.5;
+    margin-bottom: 24px;
+}
+
+/* ===================================================
+   Menu Deactivation & Status Styles
+   =================================================== */
+
+/* Status Filter Pills */
+.status-filter-pills {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.status-pill {
+    padding: 8px 16px;
+    border: 1.5px solid #dce2e6;
+    background: #fff;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #666;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.status-pill:hover {
+    border-color: #3498db;
+    color: #3498db;
+}
+
+.status-pill.active {
+    background: #2c3e50;
+    color: #fff;
+    border-color: #2c3e50;
+}
+
+.status-pill.active-pill.active {
+    background: #27ae60;
+    border-color: #27ae60;
+    color: #fff;
+}
+
+.status-pill.inactive-pill.active {
+    background: #e67e22;
+    border-color: #e67e22;
+    color: #fff;
+}
+
+.inactive-counter-tag {
+    color: #e67e22;
+    font-weight: 600;
+}
+
+/* Card Active / Inactive states */
+.admin-menu-card.card-inactive {
+    opacity: 0.85;
+    border: 1.5px dashed #bdc3c7;
+    background: #fbfbfc;
+}
+
+.admin-menu-card.card-inactive:hover {
+    opacity: 1;
+}
+
+/* Card Status Badge (Image Overlay) */
+.status-pill-badge {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3.5px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    color: #fff;
+    backdrop-filter: blur(8px);
+}
+
+.status-pill-badge.badge-active {
+    background: rgba(16, 185, 129, 0.92);
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
+}
+
+.status-pill-badge.badge-inactive {
+    background: rgba(71, 85, 105, 0.92);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #fff;
+    display: inline-block;
+}
+
+.badge-active .status-dot {
+    box-shadow: 0 0 6px #fff;
+}
+
+/* Deactivated Notice in Card Body */
+.deactivated-notice {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #f8fafc;
+    color: #64748b;
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 6px;
+    margin-bottom: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+.deactivated-notice svg {
+    color: #94a3b8;
+    flex-shrink: 0;
+}
+
+/* Modern Card Actions Toolbar */
+.card-actions-modern {
+    display: grid;
+    grid-template-columns: 1.25fr 0.9fr 0.9fr;
+    gap: 8px;
+    margin-top: auto;
+    padding-top: 14px;
+    border-top: 1px solid #f1f5f9;
+}
+
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 8px 10px;
+    border-radius: 7px;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    background: #fff;
+    user-select: none;
+    line-height: 1;
+}
+
+.action-btn .action-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
+}
+
+.action-btn .action-text {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.action-btn:active {
+    transform: scale(0.96);
+}
+
+/* Deactivate Action Button */
+.action-toggle.btn-deactivate {
+    background: #fffbeb;
+    color: #b45309;
+    border-color: #fde68a;
+}
+
+.action-toggle.btn-deactivate:hover {
+    background: #fef3c7;
+    color: #92400e;
+    border-color: #fcd34d;
+    box-shadow: 0 2px 8px rgba(217, 119, 6, 0.18);
+    transform: translateY(-1px);
+}
+
+/* Activate Action Button */
+.action-toggle.btn-activate {
+    background: #ecfdf5;
+    color: #047857;
+    border-color: #a7f3d0;
+}
+
+.action-toggle.btn-activate:hover {
+    background: #d1fae5;
+    color: #065f46;
+    border-color: #6ee7b7;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.22);
+    transform: translateY(-1px);
+}
+
+/* Edit Action Button */
+.action-edit {
+    background: #f8fafc;
+    color: #334155;
+    border-color: #e2e8f0;
+}
+
+.action-edit:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+    border-color: #cbd5e1;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    transform: translateY(-1px);
+}
+
+/* Delete Action Button */
+.action-delete {
+    background: #fff5f5;
+    color: #dc2626;
+    border-color: #fecaca;
+}
+
+.action-delete:hover {
+    background: #dc2626;
+    color: #ffffff;
+    border-color: #dc2626;
+    box-shadow: 0 3px 10px rgba(220, 38, 38, 0.3);
+    transform: translateY(-1px);
+}
+
+/* Modal Checkbox */
+.checkbox-form-group {
+    background: #f8fafc;
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.custom-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #2d3748;
+    margin-bottom: 0 !important;
+}
+
+.custom-checkbox-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #27ae60;
+}
+

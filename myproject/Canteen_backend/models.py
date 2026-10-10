@@ -45,6 +45,7 @@ class Menu(models.Model):
     canteen = models.ForeignKey(Canteen, on_delete=models.CASCADE, related_name="menu_items")
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="menu_entries")
     stock = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
 
     class Meta:
         unique_together = ('canteen', 'product')  # One product per canteen

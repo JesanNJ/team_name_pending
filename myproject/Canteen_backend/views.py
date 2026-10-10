@@ -97,7 +97,7 @@ def canteen_menu(request, canteen_id):
     except Canteen.DoesNotExist:
         return Response({"error": "Canteen not found"}, status=404)
 
-    menu_items = Menu.objects.filter(canteen=canteen)
+    menu_items = Menu.objects.filter(canteen=canteen, is_active=True)
     serializer = MenuSerializer(menu_items, many=True)
     return Response(serializer.data)
 
@@ -107,6 +107,11 @@ def add_to_cart(request, canteen_id, product_id):
     user = request.user
     canteen = get_object_or_404(Canteen, id=canteen_id)
     product = get_object_or_404(Product, id=product_id)
+
+    # Check if menu item is active for this canteen
+    menu_item = Menu.objects.filter(canteen=canteen, product=product).first()
+    if menu_item and not menu_item.is_active:
+        return Response({"error": f"{product.name} is currently unavailable"}, status=status.HTTP_400_BAD_REQUEST)
 
     # ✅ Get or create cart for this user + canteen
     cart, created = Cart.objects.get_or_create(user=user, canteen=canteen)
@@ -124,6 +129,7 @@ def add_to_cart(request, canteen_id, product_id):
     cart_item.save()
 
     return Response({"message": f"{product.name} added to cart at {canteen.name}"})
+
 
 
 @api_view(["POST"])
@@ -274,3 +280,217 @@ def move_order(request, status, order_id):
     order.status = status
     order.save()
     return Response({"message": f"Order {order.id} moved to {status}"})
+
+
+# Helper function to check admin rights
+def is_admin_user(user):
+    if not user or not user.is_authenticated:
+        return False
+    if getattr(user, 'is_staff', False) or getattr(user, 'is_superuser', False):
+        return True
+    profile = getattr(user, 'userprofile', None)
+    if profile and getattr(profile, 'role', '') == 'admin':
+        return True
+    if getattr(user, 'username', '').lower() == 'admin':
+        return True
+    return False
+
+
+# Admin Menu Management Endpoints (Admin Only)
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def admin_canteen_menu(request, canteen_id):
+    """
+    Fetch menu items for a specific canteen for admin management.
+    Restricted to admin users only.
+    """
+    if not is_admin_user(request.user):
+        return Response({"error": "Admin access required"}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        canteen = Canteen.objects.get(id=canteen_id)
+    except Canteen.DoesNotExist:
+        return Response({"error": "Canteen not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    menu_items = Menu.objects.filter(canteen=canteen).select_related('product')
+    serializer = MenuSerializer(menu_items, many=True)
+    return Response(serializer.data)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def admin_add_menu_item(request):
+    """
+    Add a new product and link it to the canteen menu, or add an existing product.
+    Restricted to admin users only.
+    """
+    import random
+    import uuid
+
+    if not is_admin_user(request.user):
+        return Response({"error": "Admin access required"}, status=status.HTTP_403_FORBIDDEN)
+
+    canteen_id = request.data.get("canteen_id")
+    name = request.data.get("name")
+    price = request.data.get("price")
+
+    if not canteen_id or not name or price is None:
+        return Response({"error": "canteen_id, name, and price are required"}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        canteen = Canteen.objects.get(id=canteen_id)
+    except Canteen.DoesNotExist:
+        return Response({"error": "Canteen not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    product_code = request.data.get("product_code", "").strip()
+    if not product_code:
+        # Auto-generate a unique code
+        for _ in range(10):
+            candidate_code = f"P{random.randint(100, 999)}"
+            if not Product.objects.filter(product_code=candidate_code).exists():
+                product_code = candidate_code
+                break
+        if not product_code:
+            product_code = f"P{uuid.uuid4().hex[:5].upper()}"
+
+    item_type = request.data.get("type", "Veg")
+    url = request.data.get("url", "").strip()
+    stock = int(request.data.get("stock", 10))
+
+    try:
+        price_val = float(price)
+    except (ValueError, TypeError):
+        return Response({"error": "Invalid price"}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Check if product with code already exists
+    product = Product.objects.filter(product_code=product_code).first()
+    if product:
+        product.name = name
+        product.price = price_val
+        product.type = item_type
+        if url:
+            product.url = url
+        product.save()
+    else:
+        product = Product.objects.create(
+            product_code=product_code,
+            name=name,
+            price=price_val,
+            type=item_type,
+            url=url,
+            canteen=canteen
+        )
+
+    menu_item, created = Menu.objects.get_or_create(
+        canteen=canteen,
+        product=product,
+        defaults={"stock": stock}
+    )
+    if not created:
+        menu_item.stock = stock
+        menu_item.save()
+
+    return Response({
+        "message": f"'{name}' added to menu successfully",
+        "item": MenuSerializer(menu_item).data
+    }, status=status.HTTP_201_CREATED)
+
+
+@api_view(["POST", "PUT"])
+@permission_classes([IsAuthenticated])
+def admin_update_menu_item(request, menu_id):
+    """
+    Update stock, price, name, type, image URL, or is_active of an existing menu item.
+    Restricted to admin users only.
+    """
+    if not is_admin_user(request.user):
+        return Response({"error": "Admin access required"}, status=status.HTTP_403_FORBIDDEN)
+
+    menu_item = get_object_or_404(Menu, id=menu_id)
+
+    if "stock" in request.data:
+        try:
+            menu_item.stock = max(0, int(request.data["stock"]))
+        except (ValueError, TypeError):
+            return Response({"error": "Invalid stock value"}, status=status.HTTP_400_BAD_REQUEST)
+
+    if "is_active" in request.data:
+        val = request.data["is_active"]
+        menu_item.is_active = val if isinstance(val, bool) else str(val).lower() in ("true", "1")
+
+    product = menu_item.product
+    product_updated = False
+
+    if "price" in request.data:
+        try:
+            product.price = float(request.data["price"])
+            product_updated = True
+        except (ValueError, TypeError):
+            return Response({"error": "Invalid price value"}, status=status.HTTP_400_BAD_REQUEST)
+
+    if "name" in request.data and request.data["name"]:
+        product.name = request.data["name"]
+        product_updated = True
+
+    if "type" in request.data and request.data["type"]:
+        product.type = request.data["type"]
+        product_updated = True
+
+    if "url" in request.data:
+        product.url = request.data["url"]
+        product_updated = True
+
+    if product_updated:
+        product.save()
+
+    menu_item.save()
+
+    return Response({
+        "message": f"'{product.name}' updated successfully",
+        "item": MenuSerializer(menu_item).data
+    })
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def admin_toggle_menu_item(request, menu_id):
+    """
+    Toggle is_active state (activate / deactivate) of a menu item without deleting it.
+    Restricted to admin users only.
+    """
+    if not is_admin_user(request.user):
+        return Response({"error": "Admin access required"}, status=status.HTTP_403_FORBIDDEN)
+
+    menu_item = get_object_or_404(Menu, id=menu_id)
+    if "is_active" in request.data:
+        val = request.data["is_active"]
+        menu_item.is_active = val if isinstance(val, bool) else str(val).lower() in ("true", "1")
+    else:
+        menu_item.is_active = not menu_item.is_active
+
+    menu_item.save()
+
+    state_str = "activated (visible to students)" if menu_item.is_active else "deactivated (hidden from students)"
+    return Response({
+        "message": f"'{menu_item.product.name}' has been {state_str}",
+        "item": MenuSerializer(menu_item).data
+    })
+
+
+@api_view(["DELETE"])
+@permission_classes([IsAuthenticated])
+def admin_delete_menu_item(request, menu_id):
+    """
+    Remove an item from the canteen menu.
+    Restricted to admin users only.
+    """
+    if not is_admin_user(request.user):
+        return Response({"error": "Admin access required"}, status=status.HTTP_403_FORBIDDEN)
+
+    menu_item = get_object_or_404(Menu, id=menu_id)
+    product_name = menu_item.product.name
+    menu_item.delete()
+
+    return Response({"message": f"'{product_name}' removed from menu"})
+

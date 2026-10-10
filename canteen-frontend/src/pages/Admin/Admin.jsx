@@ -1,10 +1,12 @@
 import './admin.css';
 import { Header } from '../../components/Header';
 import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { OrdersSection } from './OrdersSection';
 import { PreparingSection } from './PreparingSection';
 import { DeliveredSection } from './DeliveredSection';
+import { AdminMenuSection } from './AdminMenuSection';
 
 
 async function getAccessToken() {
@@ -44,12 +46,41 @@ function isExpired(token) {
 
 
 export function Admin() {
-
-    const [activeTab, setActiveTab] = useState("pending");
+    const location = useLocation();
+    const navigate = useNavigate();
+    const [activeTab, setActiveTab] = useState(location.state?.tab || "pending");
     const [orders, setOrders] = useState([]);
-    console.log(orders)
+    const [authChecking, setAuthChecking] = useState(true);
+    const [isAdmin, setIsAdmin] = useState(false);
+
+    // Verify admin privileges on mount
+    useEffect(() => {
+        const checkAdminStatus = async () => {
+            try {
+                const access = await getAccessToken();
+                const res = await axios.get("http://127.0.0.1:8000/api/current-user/", {
+                    headers: { Authorization: `Bearer ${access}` }
+                });
+                const role = res.data?.profile?.role;
+                const username = res.data?.username;
+                if (role === "admin" || username?.toLowerCase() === "admin") {
+                    setIsAdmin(true);
+                } else {
+                    setIsAdmin(false);
+                }
+            } catch (err) {
+                console.error("Admin verification error:", err);
+                setIsAdmin(false);
+            } finally {
+                setAuthChecking(false);
+            }
+        };
+
+        checkAdminStatus();
+    }, []);
 
     useEffect(() => {
+        if (activeTab === "menu" || !isAdmin) return;
 
         const fetchOrders = async () => {
             try {
@@ -70,7 +101,7 @@ export function Admin() {
 
         fetchOrders();
 
-    }, [activeTab]);
+    }, [activeTab, isAdmin]);
 
 
 
@@ -96,12 +127,38 @@ export function Admin() {
         }
     };
 
-    console.log(activeTab)
+    if (authChecking) {
+        return (
+            <>
+                <Header />
+                <div style={{ textAlign: "center", padding: "60px 20px", fontSize: "18px", color: "#666" }}>
+                    Verifying admin credentials...
+                </div>
+            </>
+        );
+    }
+
+    if (!isAdmin) {
+        return (
+            <>
+                <Header />
+                <div className="admin-access-denied">
+                    <div className="access-denied-box">
+                        <h2>⚠️ Access Restricted</h2>
+                        <p>This portal is exclusively accessible to administrators. Please log in with an administrator account.</p>
+                        <button className="btn btn-move" onClick={() => navigate("/home")}>
+                            Return to Home
+                        </button>
+                    </div>
+                </div>
+            </>
+        );
+    }
 
     return (
         <>
             <Header />
-            <header>Admin Order Management</header>
+            <header>Admin Management Portal</header>
 
             <div className="tabs">
                 <div
@@ -119,15 +176,21 @@ export function Admin() {
                     onClick={() => setActiveTab("delivered")}>
                     Delivered
                 </div>
+                <div
+                    className={`tab ${activeTab === "menu" ? "active" : ""}`}
+                    onClick={() => setActiveTab("menu")}>
+                    🍽️ Manage Menu
+                </div>
             </div>
 
             {activeTab === "pending" && <OrdersSection orders={orders} handleMoveOrders={handleMoveOrders} />}
             {activeTab === "preparing" && <PreparingSection orders={orders} handleMoveOrders={handleMoveOrders} />}
             {activeTab === "delivered" && <DeliveredSection orders={orders} />}
+            {activeTab === "menu" && <AdminMenuSection />}
 
 
 
 
         </>
     )
-}
+}

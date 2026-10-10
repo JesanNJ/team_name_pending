@@ -93,15 +93,12 @@ WSGI_APPLICATION = 'myproject.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'canteen_backend',          # Your database name
-        'USER': 'root',                     # Your MySQL username
-        'PASSWORD': 'Hari2060#',         # Your MySQL password
-        'HOST': 'localhost',                # MySQL host
-        'PORT': '3306',                     # Default MySQL port
-        'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"
-        }
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'postgres',
+        'USER': 'postgres.bxrnotfvoazmfdmqamwg',
+        'PASSWORD': '3QzRGvNOMqhn1tzf',
+        'HOST': 'aws-0-ap-northeast-1.pooler.supabase.com',
+        'PORT': '5432',
     }
 }
 

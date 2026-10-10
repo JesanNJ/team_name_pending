@@ -124,7 +124,7 @@ class MenuSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Menu
-        fields = ["id", "canteen",'product_id', "stock", "product_code", "product_name", "product_price", "product_type","product_url"]
+        fields = ["id", "canteen", 'product_id', "stock", "product_code", "product_name", "product_price", "product_type", "product_url", "is_active"]
 
 
 
