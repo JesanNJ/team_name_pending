@@ -220,6 +220,7 @@ export function AdminAuthSkeleton() {
         <div className="admin-auth-skeleton-tab skeleton-shimmer" />
         <div className="admin-auth-skeleton-tab skeleton-shimmer" />
         <div className="admin-auth-skeleton-tab skeleton-shimmer" />
+        <div className="admin-auth-skeleton-tab skeleton-shimmer" />
       </div>
       <div className="order-board" style={{ marginTop: '20px' }}>
         <AdminOrderSkeletonGrid count={6} />

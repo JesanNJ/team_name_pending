@@ -76,6 +76,7 @@ class Order(models.Model):
         ('preparing', 'Preparing'),
         ('prepared', 'Prepared / Ready to Pickup'),
         ('delivered', 'Delivered'),
+        ('cancelled', 'Cancelled'),
     ]
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     canteen = models.ForeignKey('Canteen', on_delete=models.CASCADE)

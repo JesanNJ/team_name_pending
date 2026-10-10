@@ -7,6 +7,7 @@ import { OrdersSection } from './OrdersSection';
 import { PreparingSection } from './PreparingSection';
 import { PreparedSection } from './PreparedSection';
 import { DeliveredSection } from './DeliveredSection';
+import { CancelledSection } from './CancelledSection';
 import { AdminMenuSection } from './AdminMenuSection';
 import { AdminAuthSkeleton } from '../../components/Skeleton/Skeleton';
 
@@ -187,6 +188,11 @@ export function Admin() {
                     Delivered
                 </div>
                 <div
+                    className={`tab ${activeTab === "cancelled" ? "active" : ""}`}
+                    onClick={() => setActiveTab("cancelled")}>
+                    Cancelled
+                </div>
+                <div
                     className={`tab ${activeTab === "menu" ? "active" : ""}`}
                     onClick={() => setActiveTab("menu")}>
                     🍽️ Manage Menu
@@ -197,6 +203,7 @@ export function Admin() {
             {activeTab === "preparing" && <PreparingSection orders={orders} loading={loadingOrders} handleMoveOrders={handleMoveOrders} />}
             {activeTab === "prepared" && <PreparedSection orders={orders} loading={loadingOrders} handleMoveOrders={handleMoveOrders} />}
             {activeTab === "delivered" && <DeliveredSection orders={orders} loading={loadingOrders} />}
+            {activeTab === "cancelled" && <CancelledSection orders={orders} loading={loadingOrders} />}
             {activeTab === "menu" && <AdminMenuSection />}
 
 

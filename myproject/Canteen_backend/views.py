@@ -259,7 +259,7 @@ def orders_by_status(request, status=None):
     """
     Fetch orders by status. If no status provided, fetch all orders.
     """
-    valid_statuses = ["pending", "preparing", "prepared", "delivered", "ready"]
+    valid_statuses = ["pending", "preparing", "prepared", "delivered", "ready", "cancelled"]
 
     if status and status not in valid_statuses:
         return Response({"error": "Invalid status"}, status=400)
@@ -284,6 +284,42 @@ def move_order(request, status, order_id):
     order.status = new_status
     order.save()
     return Response({"message": f"Order {order.id} moved to {new_status}"})
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def cancel_order(request, order_id):
+    """
+    Cancel an order.
+    Allowed for orders in 'pending', 'preparing', 'prepared' (ready to pickup).
+    Rejected if already 'delivered' or 'cancelled'.
+    """
+    is_admin = request.user.is_staff or request.user.is_superuser or request.user.username.lower() == "admin"
+    if is_admin:
+        order = get_object_or_404(Order, id=order_id)
+    else:
+        order = get_object_or_404(Order, id=order_id, user=request.user)
+
+    if order.status == "delivered":
+        return Response(
+            {"error": "Cannot cancel an order that has already been delivered."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    if order.status == "cancelled":
+        return Response(
+            {"error": "This order is already cancelled."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    order.status = "cancelled"
+    order.save()
+
+    return Response({
+        "message": f"Order #{order.id} cancelled successfully.",
+        "order_id": order.id,
+        "status": "cancelled"
+    })
 
 
 # Helper function to check admin rights

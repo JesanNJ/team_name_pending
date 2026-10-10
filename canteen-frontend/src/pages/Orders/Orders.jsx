@@ -46,6 +46,7 @@ export function Orders() {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedOrder, setSelectedOrder] = useState(null);
+    const [cancellingId, setCancellingId] = useState(null);
 
 
     const openModal = (order) => {
@@ -55,6 +56,38 @@ export function Orders() {
     const closeModal = () => {
         setSelectedOrder(null);
     }
+
+    const handleCancelOrder = async (orderId) => {
+        if (!window.confirm(`Are you sure you want to cancel Order #${orderId}?`)) {
+            return;
+        }
+        setCancellingId(orderId);
+        try {
+            const access = await getAccessToken();
+            const res = await fetch(`http://127.0.0.1:8000/api/orders/cancel/${orderId}/`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${access}`
+                }
+            });
+            const data = await res.json();
+            if (res.ok) {
+                alert(data.message || `Order #${orderId} cancelled successfully.`);
+                setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: "cancelled" } : o));
+                if (selectedOrder && selectedOrder.id === orderId) {
+                    setSelectedOrder(prev => ({ ...prev, status: "cancelled" }));
+                }
+            } else {
+                alert(data.error || "Failed to cancel order");
+            }
+        } catch (err) {
+            console.error("Cancel order error:", err);
+            alert("Something went wrong while cancelling the order.");
+        } finally {
+            setCancellingId(null);
+        }
+    };
 
     useEffect(() => {
         const fetchOrders = async () => {
@@ -107,7 +140,12 @@ export function Orders() {
                             📦 You haven't placed any orders yet.
                         </div>
                     ) : (
-                        <OrderCard orders={orders} openModal={openModal} />
+                        <OrderCard 
+                            orders={orders} 
+                            openModal={openModal} 
+                            handleCancelOrder={handleCancelOrder} 
+                            cancellingId={cancellingId} 
+                        />
                     )}
                 </div>
             </section>
@@ -132,7 +170,28 @@ export function Orders() {
                             <hr />
                             <p><strong>Total</strong><span>₹  {selectedOrder.total_price.toFixed(2)}</span></p>
                         </div>
-                        <button className="reorder-btn-modal">Reorder</button>
+                        <div style={{ display: "flex", gap: "10px", marginTop: "15px" }}>
+                            <button className="reorder-btn-modal" style={{ flex: 1 }}>Reorder</button>
+                            {selectedOrder.status !== "delivered" && selectedOrder.status !== "cancelled" && (
+                                <button 
+                                    className="cancel-btn-modal" 
+                                    style={{ 
+                                        flex: 1, 
+                                        background: "#e74c3c", 
+                                        color: "#fff", 
+                                        border: "none", 
+                                        borderRadius: "6px", 
+                                        padding: "10px", 
+                                        cursor: "pointer", 
+                                        fontWeight: "600" 
+                                    }}
+                                    onClick={() => handleCancelOrder(selectedOrder.id)}
+                                    disabled={cancellingId === selectedOrder.id}
+                                >
+                                    {cancellingId === selectedOrder.id ? "Cancelling..." : "Cancel Order"}
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
             }

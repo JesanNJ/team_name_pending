@@ -131,6 +131,29 @@ body{
   font-weight: bold;
 }
 
+.cancel-btn {
+  flex: 1;
+  padding: 8px 0;
+  border: 1px solid #e74c3c;
+  background: #ffffff;
+  color: #e74c3c;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.cancel-btn:hover:not(:disabled) {
+  background: #e74c3c;
+  color: #ffffff;
+}
+
+.cancel-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 
 
 
