@@ -93,11 +93,19 @@ def get_canteens(request):
 def canteen_menu(request, canteen_id):
     try:
         canteen = Canteen.objects.get(id=canteen_id)
-        print(canteen)
     except Canteen.DoesNotExist:
         return Response({"error": "Canteen not found"}, status=404)
 
-    menu_items = Menu.objects.filter(canteen=canteen, is_active=True)
+    menu_items = Menu.objects.filter(canteen=canteen, is_active=True).select_related('product')
+
+    category = request.query_params.get("category") or request.query_params.get("type")
+    if category and category.strip().lower() != "all":
+        clean_cat = category.strip()
+        if clean_cat.lower() in ["nonveg", "non-veg", "novveg"]:
+            menu_items = menu_items.filter(product__type__in=["Non-Veg", "non-veg", "Non Veg"])
+        else:
+            menu_items = menu_items.filter(product__type__iexact=clean_cat)
+
     serializer = MenuSerializer(menu_items, many=True)
     return Response(serializer.data)
 
@@ -315,6 +323,27 @@ def orders_by_status(request, status=None):
     return Response(serializer.data)
 
 
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def order_counts(request):
+    """
+    Fetch order counts grouped by status for admin dashboard.
+    """
+    pending = Order.objects.filter(status="pending").count()
+    preparing = Order.objects.filter(status="preparing").count()
+    prepared = Order.objects.filter(status__in=["prepared", "ready"]).count()
+    delivered = Order.objects.filter(status="delivered").count()
+    cancelled = Order.objects.filter(status="cancelled").count()
+    return Response({
+        "pending": pending,
+        "preparing": preparing,
+        "prepared": prepared,
+        "delivered": delivered,
+        "cancelled": cancelled,
+        "total": pending + preparing + prepared + delivered + cancelled,
+    })
+
+
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def move_order(request, status, order_id):
@@ -387,6 +416,7 @@ def admin_canteen_menu(request, canteen_id):
     """
     Fetch menu items for a specific canteen for admin management.
     Restricted to admin users only.
+    Supports backend filtering by category/type query parameter.
     """
     if not is_admin_user(request.user):
         return Response({"error": "Admin access required"}, status=status.HTTP_403_FORBIDDEN)
@@ -397,6 +427,16 @@ def admin_canteen_menu(request, canteen_id):
         return Response({"error": "Canteen not found"}, status=status.HTTP_404_NOT_FOUND)
 
     menu_items = Menu.objects.filter(canteen=canteen).select_related('product')
+
+    # Filter by category/type from query params (e.g., ?category=Veg, ?category=Non-Veg, ?category=Beverages)
+    category = request.query_params.get("category") or request.query_params.get("type")
+    if category and category.strip().lower() != "all":
+        clean_cat = category.strip()
+        if clean_cat.lower() in ["nonveg", "non-veg", "novveg"]:
+            menu_items = menu_items.filter(product__type__in=["Non-Veg", "non-veg", "Non Veg"])
+        else:
+            menu_items = menu_items.filter(product__type__iexact=clean_cat)
+
     serializer = MenuSerializer(menu_items, many=True)
     return Response(serializer.data)
 

@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import register,MyTokenObtainPairView,logout_and_blacklist, get_canteens, canteen_menu , move_order,update_cart_item
-from .views import add_to_cart, view_cart, place_order, user_orders, remove_from_cart,current_user,orders_by_status, cancel_order
+from .views import add_to_cart, view_cart, place_order, user_orders, remove_from_cart,current_user,orders_by_status, cancel_order, order_counts
 from .views import admin_canteen_menu, admin_add_menu_item, admin_update_menu_item, admin_delete_menu_item, admin_toggle_menu_item
 from rest_framework_simplejwt.views import TokenRefreshView
 
@@ -20,6 +20,7 @@ urlpatterns = [
     path('orders/cancel/<int:order_id>/', cancel_order, name='cancel_order'),
     # for admin
     path("current-user/",current_user, name="current_user"),
+    path("orders/counts/", order_counts, name="order_counts"),
     path("orders/<str:status>/", orders_by_status,name="moving-reg-to-orders"),
     path("orders/move/<str:status>/<int:order_id>/",move_order, name="move_order"),
     # for admin menu management
