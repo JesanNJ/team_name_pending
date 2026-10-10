@@ -108,10 +108,13 @@ def add_to_cart(request, canteen_id, product_id):
     canteen = get_object_or_404(Canteen, id=canteen_id)
     product = get_object_or_404(Product, id=product_id)
 
-    # Check if menu item is active for this canteen
+    # Check if menu item is active and has stock for this canteen
     menu_item = Menu.objects.filter(canteen=canteen, product=product).first()
-    if menu_item and not menu_item.is_active:
-        return Response({"error": f"{product.name} is currently unavailable"}, status=status.HTTP_400_BAD_REQUEST)
+    if menu_item:
+        if not menu_item.is_active:
+            return Response({"error": f"{product.name} is currently unavailable"}, status=status.HTTP_400_BAD_REQUEST)
+        if menu_item.stock <= 0:
+            return Response({"error": f"Sorry, {product.name} is currently out of stock"}, status=status.HTTP_400_BAD_REQUEST)
 
     # ✅ Get or create cart for this user + canteen
     cart, created = Cart.objects.get_or_create(user=user, canteen=canteen)
@@ -121,11 +124,17 @@ def add_to_cart(request, canteen_id, product_id):
     # ✅ Get or create cart item
     cart_item, created = CartItem.objects.get_or_create(cart=cart, product=product)
 
+    new_quantity = quantity if created else cart_item.quantity + quantity
+    if menu_item and new_quantity > menu_item.stock:
+        return Response({
+            "error": f"Cannot add {quantity} more. Only {menu_item.stock} left in stock (you already have {cart_item.quantity if not created else 0} in cart)."
+        }, status=status.HTTP_400_BAD_REQUEST)
+
     # Increase quantity if already exists
     if created:
         cart_item.quantity = quantity   # First time → set exact quantity
     else:
-        cart_item.quantity += quantity  # Already exists → add to existing
+        cart_item.quantity = new_quantity
     cart_item.save()
 
     return Response({"message": f"{product.name} added to cart at {canteen.name}"})
@@ -139,8 +148,11 @@ def update_cart_item(request, canteen_id, product_id):
     cart_item = get_object_or_404(CartItem, cart=cart, product_id=product_id)
 
     quantity = request.data.get("quantity")
-    print(quantity)
     if quantity and int(quantity) > 0:
+        menu_item = Menu.objects.filter(canteen=cart.canteen, product_id=product_id).first()
+        if menu_item and int(quantity) > menu_item.stock:
+            return Response({"error": f"Cannot select more than {menu_item.stock} items (stock limit reached)."}, status=status.HTTP_400_BAD_REQUEST)
+
         cart_item.quantity = int(quantity)
         cart_item.save()
         return Response({"message": "Quantity updated", "quantity": cart_item.quantity})
@@ -169,6 +181,8 @@ def view_cart(request, canteen_id):
         item_total = item.quantity * item.product.price
         total_price += item_total
 
+        menu_item = Menu.objects.filter(canteen=canteen, product=item.product).first()
+        item_stock = menu_item.stock if menu_item else 0
 
         items_data.append({
             "product_id": item.product.id,
@@ -176,7 +190,8 @@ def view_cart(request, canteen_id):
             "price": item.product.price,
             "quantity": item.quantity,
             "total": item_total,
-            "url": item.product.url
+            "url": item.product.url,
+            "stock": item_stock,
         })
 
     return Response({
@@ -211,25 +226,50 @@ def place_order(request, canteen_id):
     if not cart or not cart.items.exists():
         return Response({"error": "Cart is empty"}, status=400)
 
-    order = Order.objects.create(user=user, canteen=canteen, total_price=0)
-    total_price = 0
-
+    # 1. Validate stock for each item before placing order
+    insufficient = []
     for item in cart.items.all():
-        item_total = item.quantity * item.product.price
-        total_price += item_total
+        menu_item = Menu.objects.filter(canteen=canteen, product=item.product).first()
+        if not menu_item or not menu_item.is_active:
+            return Response({"error": f"'{item.product.name}' is currently unavailable."}, status=status.HTTP_400_BAD_REQUEST)
+        if menu_item.stock < item.quantity:
+            insufficient.append(f"'{item.product.name}' (Requested: {item.quantity}, Available: {menu_item.stock})")
 
-        OrderItem.objects.create(
-            order=order,
-            product=item.product,
-            quantity=item.quantity,
-            price=item.product.price,
-        )
+    if insufficient:
+        return Response({
+            "error": "Insufficient stock for: " + ", ".join(insufficient)
+        }, status=status.HTTP_400_BAD_REQUEST)
 
-    order.total_price = total_price
-    order.save()
+    # 2. Atomically deduct stock, create order, and clear cart
+    from django.db import transaction
+    with transaction.atomic():
+        order = Order.objects.create(user=user, canteen=canteen, total_price=0)
+        total_price = 0
 
-    # Clear cart
-    cart.items.all().delete()
+        for item in cart.items.all():
+            menu_item = Menu.objects.select_for_update().filter(canteen=canteen, product=item.product).first()
+            if menu_item.stock < item.quantity:
+                raise ValueError(f"Insufficient stock for {item.product.name}")
+
+            # Deduct stock on order placement
+            menu_item.stock -= item.quantity
+            menu_item.save()
+
+            item_total = item.quantity * item.product.price
+            total_price += item_total
+
+            OrderItem.objects.create(
+                order=order,
+                product=item.product,
+                quantity=item.quantity,
+                price=item.product.price,
+            )
+
+        order.total_price = total_price
+        order.save()
+
+        # Clear cart
+        cart.items.all().delete()
 
     return Response({"message": "Order placed successfully", "order_id": order.id})
 
@@ -306,17 +346,20 @@ def cancel_order(request, order_id):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    if order.status == "cancelled":
-        return Response(
-            {"error": "This order is already cancelled."},
-            status=status.HTTP_400_BAD_REQUEST
-        )
+    from django.db import transaction
+    with transaction.atomic():
+        order.status = "cancelled"
+        order.save()
 
-    order.status = "cancelled"
-    order.save()
+        # Restore deducted stock back to Menu
+        for item in order.items.all():
+            menu_item = Menu.objects.filter(canteen=order.canteen, product=item.product).first()
+            if menu_item:
+                menu_item.stock += item.quantity
+                menu_item.save()
 
     return Response({
-        "message": f"Order #{order.id} cancelled successfully.",
+        "message": f"Order #{order.id} cancelled successfully and stock has been restored.",
         "order_id": order.id,
         "status": "cancelled"
     })

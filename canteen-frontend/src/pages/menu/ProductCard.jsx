@@ -1,8 +1,6 @@
 import axios from "axios";
 import { useState } from "react";
 
-
-
 async function getAccessToken() {
     let access = localStorage.getItem("access");
     const refresh = localStorage.getItem("refresh");
@@ -37,20 +35,16 @@ function isExpired(token) {
     }
 }
 
-
-
 export function ProductCard({ menu, canteenId, selectedType }) {
-
-
     const [quantity, setQuantity] = useState({});
-    // console.log(quantity)
 
     const handleAddToCart = async (product) => {
+        if (Number(product.stock) <= 0) {
+            alert("Sorry, this item is out of stock!");
+            return;
+        }
         const access = await getAccessToken();
         const itemQuantity = quantity[product.id] || 1;
-        // console.log(product)
-        // console.log(itemQuantity)
-        console.log(product)
         try {
             await axios.post(
                 `http://127.0.0.1:8000/api/cart/add/${canteenId}/${Number(product.product_id)}`,
@@ -58,20 +52,27 @@ export function ProductCard({ menu, canteenId, selectedType }) {
                 { headers: { Authorization: `Bearer ${access}` } }
             );
             alert("Added to cart!");
-            // console.log(res)
         } catch (err) {
             console.error(err);
+            const msg = err.response?.data?.error || "Failed to add to cart.";
+            alert(msg);
         }
     };
 
     const filteredMenu = selectedType === "All" ? menu : menu.filter(item => item.product_type === selectedType);
 
-
-    const handleIncrease = (id) => {
-        setQuantity((prev) => ({
-            ...prev,
-            [id]: (prev[id] || 1) + 1,
-        }));
+    const handleIncrease = (id, maxStock) => {
+        setQuantity((prev) => {
+            const current = prev[id] || 1;
+            if (maxStock !== undefined && current >= maxStock) {
+                alert(`Cannot select more than available stock (${maxStock})`);
+                return prev;
+            }
+            return {
+                ...prev,
+                [id]: current + 1,
+            };
+        });
     };
 
     const handleDecrease = (id) => {
@@ -81,45 +82,48 @@ export function ProductCard({ menu, canteenId, selectedType }) {
         }));
     };
 
-
-    
-
-
-
     return (
-
         <>
             {
                 filteredMenu.map((item) => {
+                    const isOutOfStock = Number(item.stock) <= 0;
                     return (
                         <div className="product-card" key={item.id}>
                             <div className="img-container">
-                                <img src={item.product_url} alt="Burger"
+                                <img src={item.product_url} alt={item.product_name}
                                     className="product-img" />
-                                <span className="stock-badge">Only {item.stock} left</span>
+                                <span 
+                                    className={`stock-badge ${isOutOfStock ? "out-of-stock" : ""}`}
+                                    style={isOutOfStock ? { background: "#7f8c8d" } : {}}
+                                >
+                                    {isOutOfStock ? "Out of Stock" : `Only ${item.stock} left`}
+                                </span>
                             </div>
 
                             <div className="product-info">
                                 <h3 className="product-title">{item.product_name}</h3>
-                                {/* <p className="product-desc">Juicy grilled beef patty with melted cheese.</p> */}
                                 <div className="price">₹ {Number(item.product_price).toFixed(2)}</div>
                                 <div className="qty-editor">
-                                    <button className="qty-btn" onClick={() => handleDecrease(item.id)}>-</button>
+                                    <button className="qty-btn" onClick={() => handleDecrease(item.id)} disabled={isOutOfStock}>-</button>
                                     <span className="qty-value">{quantity[item.id] || 1}</span>
-                                    <button className="qty-btn" onClick={() => handleIncrease(item.id)}>+</button>
+                                    <button className="qty-btn" onClick={() => handleIncrease(item.id, item.stock)} disabled={isOutOfStock}>+</button>
                                 </div>
 
-                                <button className="add-btn" onClick={() => handleAddToCart(item)}>Add to Cart</button>
+                                <button 
+                                    className="add-btn" 
+                                    onClick={() => handleAddToCart(item)}
+                                    disabled={isOutOfStock}
+                                    style={isOutOfStock ? { background: "#95a5a6", cursor: "not-allowed" } : {}}
+                                >
+                                    {isOutOfStock ? "Out of Stock" : "Add to Cart"}
+                                </button>
                             </div>
                         </div>
-
-                    )
-
+                    );
                 })
             }
         </>
-
     );
-};
+}
 
 export default ProductCard;

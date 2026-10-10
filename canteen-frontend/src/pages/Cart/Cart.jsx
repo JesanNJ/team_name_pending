@@ -101,14 +101,6 @@ export function Cart() {
                         <PaymentSummary cartData={cartData} setCartData={setCartData} canteenId={canteenId} getAccessToken={getAccessToken} />
                     )}
 
-                    <div className="payment-modal" id="paymentModal">
-                        <div className="payment-content">
-                            <h3>Payment Process</h3>
-                            <p>Please wait while we process your payment...</p>
-                            <div className="loader"></div>
-                            <button id="closePayment">Close</button>
-                        </div>
-                    </div>
                     
 
 

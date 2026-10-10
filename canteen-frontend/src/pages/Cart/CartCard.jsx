@@ -73,13 +73,15 @@ export function CartCard({ cartData, canteenId, setCartData }) {
 
 
     // console.log(cartData)
-    const handleIncrease = (id) => {
-        const newQty = (quantity[id] || 1) + 1;
-        console.log(newQty,"new qty")
+    const handleIncrease = (id, maxStock) => {
+        const currentQty = quantity[id] || 1;
+        if (maxStock !== undefined && currentQty >= maxStock) {
+            alert(`Cannot select more than available stock (${maxStock})`);
+            return;
+        }
+        const newQty = currentQty + 1;
         setQuantity(prev => ({ ...prev, [id]: newQty }));
         updateQuantityBackend(id, newQty);
-        console.log(id)
-        console.log(quantity)
     };
 
     const handleDecrease = (id) => {
@@ -110,18 +112,26 @@ export function CartCard({ cartData, canteenId, setCartData }) {
         <>
             {
                 cartData.items && cartData.items.map((item) => {
+                    const isOverStock = item.stock !== undefined && (quantity[item.product_id] || 1) > item.stock;
                     return (
                         <div className="cart-card" key={item.product_id}>
-                            <img src={item.url} alt="Burger"
+                            <img src={item.url} alt={item.product_name}
                                 className="cart-img" />
                             <div className="cart-info">
                                 <h3 className="cart-title-item">{item.product_name}</h3>
-                                <p className="cart-price">₹ {item.price.toFixed(2)}</p>
+                                <p className="cart-price">
+                                    ₹ {item.price.toFixed(2)}
+                                    {item.stock !== undefined && (
+                                        <span style={{ fontSize: "12px", color: isOverStock ? "#e74c3c" : "#777", marginLeft: "10px", fontWeight: "normal" }}>
+                                            (Available: {item.stock})
+                                        </span>
+                                    )}
+                                </p>
                                 <div className="cart-actions">
                                     <div className="qty">
                                         <button onClick={() => handleDecrease(item.product_id)}>-</button>
                                         <span>{quantity[item.product_id]}</span>
-                                        <button onClick={() => handleIncrease(item.product_id)}>+</button>
+                                        <button onClick={() => handleIncrease(item.product_id, item.stock)}>+</button>
                                     </div>
                                     <button className="remove-btn" onClick={() => handleRemove(item.product_id)}>Remove</button>
                                 </div>
