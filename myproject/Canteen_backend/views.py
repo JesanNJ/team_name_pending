@@ -389,6 +389,11 @@ def move_order(request, status, order_id):
     if old_status == "preparing" and new_status != "preparing":
         promote_pending(order.canteen)
 
+    # Trigger email notification via Resend when order becomes ready for pickup
+    if old_status == "preparing" and new_status == "prepared":
+        from .notifications import send_order_ready_email_async
+        send_order_ready_email_async(order)
+
     return Response({"message": f"Order {order.id} moved to {new_status}"})
 
 
@@ -453,7 +458,7 @@ def canteen_wait_time(request, canteen_id):
                 items_to_estimate.append({"product": item.product, "quantity": item.quantity})
 
     from .wait_time import estimate_order_wait
-    estimate = estimate_order_wait(canteen.id, items_to_estimate)
+    estimate = estimate_order_wait(canteen.id, items_to_estimate, user=request.user if request.user.is_authenticated else None)
     estimate["canteen_id"] = str(canteen.id)
     estimate["canteen_name"] = canteen.name
     return Response(estimate)

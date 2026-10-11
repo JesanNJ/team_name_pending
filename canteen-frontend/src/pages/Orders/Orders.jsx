@@ -152,6 +152,9 @@ export function Orders() {
             <Header />
             <section className="orders-page">
                 <h2>Your Orders</h2>
+                <p style={{ fontSize: "13px", color: "#64748b", marginTop: "-12px", marginBottom: "18px" }}>
+                    Staff orders may be served first during busy times.
+                </p>
 
                 <div className="orders-grid">
                     {loading ? (

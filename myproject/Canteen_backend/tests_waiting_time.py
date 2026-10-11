@@ -337,9 +337,52 @@ class StaffPriorityOrderFlowTests(TestCase):
             type="Veg",
             canteen=self.canteen
         )
+        self.prod_dosa = Product.objects.create(
+            product_code="TEST_DOSA",
+            name="Masala Dosa",
+            price=50.0,
+            type="Veg",
+            canteen=self.canteen
+        )
+        self.prod_juice = Product.objects.create(
+            product_code="TEST_JUICE",
+            name="Grape Juice",
+            price=40.0,
+            type="Beverages",
+            canteen=self.canteen
+        )
+        self.prod_biryani = Product.objects.create(
+            product_code="TEST_BIRYANI",
+            name="Egg Biryani",
+            price=120.0,
+            type="Non-Veg",
+            canteen=self.canteen
+        )
+        self.prod_icecream = Product.objects.create(
+            product_code="TEST_ICECREAM",
+            name="Vanilla Ice Cream",
+            price=30.0,
+            type="Snacks",
+            canteen=self.canteen
+        )
+        self.prod_cooldrink = Product.objects.create(
+            product_code="TEST_COOLDRINK",
+            name="Cool Drink",
+            price=25.0,
+            type="Beverages",
+            canteen=self.canteen
+        )
+
+        Menu.objects.create(canteen=self.canteen, product=self.prod_live, stock=50, is_active=True)
+        Menu.objects.create(canteen=self.canteen, product=self.prod_dosa, stock=50, is_active=True)
+        Menu.objects.create(canteen=self.canteen, product=self.prod_juice, stock=50, is_active=True)
+        Menu.objects.create(canteen=self.canteen, product=self.prod_biryani, stock=50, is_active=True)
+        Menu.objects.create(canteen=self.canteen, product=self.prod_icecream, stock=50, is_active=True)
+        Menu.objects.create(canteen=self.canteen, product=self.prod_cooldrink, stock=50, is_active=True)
+
         self.base_time = timezone.now()
 
-    def _create_order(self, user, minutes_offset, canteen=None, status="pending"):
+    def _create_order(self, user, minutes_offset=0, canteen=None, status="pending", items=None):
         target_canteen = canteen or self.canteen
         ord = Order.objects.create(
             user=user,
@@ -347,117 +390,208 @@ class StaffPriorityOrderFlowTests(TestCase):
             status=status,
             total_price=50.0
         )
-        OrderItem.objects.create(order=ord, product=self.prod_live, quantity=1, price=50.0)
-        # Manually update created_at to simulate exact timestamps
+        if items:
+            for prod, qty in items:
+                OrderItem.objects.create(order=ord, product=prod, quantity=qty, price=prod.price)
+        else:
+            OrderItem.objects.create(order=ord, product=self.prod_live, quantity=1, price=50.0)
         Order.objects.filter(id=ord.id).update(
             created_at=self.base_time + timedelta(minutes=minutes_offset)
         )
         ord.refresh_from_db()
         return ord
 
-    @override_settings(MAX_PREPARING=15, STAFF_CREDIT_MINUTES=8)
-    def test_1_promotion_order_with_staff_credit(self):
+    @override_settings(MAX_PREPARING=15, STAFF_MAX_EXPRESS=5, STAFF_EXPRESS_ENABLED=True)
+    def test_1_staff_express_promoted_immediately_over_cap_student_stays_pending(self):
         """
-        1. Orders: A student 12:00, B student 12:02, C staff 12:05, D staff 12:20.
-           Expected promotion order as slots free: C, A, B, D.
-           (effective times: C 11:57, A 12:00, B 12:02, D 12:12)
+        1. Staff places an order while 15 student orders are preparing: it becomes
+           'preparing' immediately and a student order that was pending stays pending.
         """
-        prep_orders = [self._create_order(self.student_a, -10, status="preparing") for _ in range(15)]
-
-        ord_a = self._create_order(self.student_a, 0)   # 12:00 -> eff 12:00
-        ord_b = self._create_order(self.student_b, 2)   # 12:02 -> eff 12:02
-        ord_c = self._create_order(self.staff_c, 5)     # 12:05 -> eff 11:57
-        ord_d = self._create_order(self.staff_d, 20)    # 12:20 -> eff 12:12
-
-        # Free 1 slot
-        prep_orders[0].status = "prepared"
-        prep_orders[0].save()
+        prep_orders = [self._create_order(self.student_a, -10 + i, status="preparing") for i in range(15)]
+        ord_pending_student = self._create_order(self.student_b, 0, status="pending")
+        ord_staff = self._create_order(self.staff_c, 1, status="pending")
 
         promoted = promote_pending(self.canteen)
-        self.assertEqual(len(promoted), 1)
-        self.assertEqual(promoted[0].id, ord_c.id)
+        ord_staff.refresh_from_db()
+        ord_pending_student.refresh_from_db()
 
-        # Free 2nd slot
-        prep_orders[1].status = "prepared"
-        prep_orders[1].save()
+        self.assertEqual(ord_staff.status, "preparing")
+        self.assertEqual(ord_pending_student.status, "pending")
+        self.assertIn(ord_staff, promoted)
+        self.assertNotIn(ord_pending_student, promoted)
+
+    @override_settings(MAX_PREPARING=15, STAFF_MAX_EXPRESS=5, STAFF_EXPRESS_ENABLED=True)
+    def test_2_staff_orders_count_towards_active_total(self):
+        """
+        2. Staff orders count towards the total: with 15 preparing including 3 staff,
+           a pending student is not promoted until active_count < 15.
+        """
+        prep_students = [self._create_order(self.student_a, -10 + i, status="preparing") for i in range(12)]
+        prep_staff = [self._create_order(self.staff_c, -5 + i, status="preparing") for i in range(3)]
+        ord_student = self._create_order(self.student_b, 0, status="pending")
+
+        promoted = promote_pending(self.canteen)
+        ord_student.refresh_from_db()
+        self.assertEqual(ord_student.status, "pending")
+        self.assertEqual(len(promoted), 0)
+
+        # Free 1 slot by completing one student order
+        prep_students[0].status = "prepared"
+        prep_students[0].save()
+
         promoted2 = promote_pending(self.canteen)
-        self.assertEqual(len(promoted2), 1)
-        self.assertEqual(promoted2[0].id, ord_a.id)
+        ord_student.refresh_from_db()
+        self.assertEqual(ord_student.status, "preparing")
+        self.assertIn(ord_student, promoted2)
 
-        # Free 3rd slot
-        prep_orders[2].status = "prepared"
-        prep_orders[2].save()
-        promoted3 = promote_pending(self.canteen)
-        self.assertEqual(len(promoted3), 1)
-        self.assertEqual(promoted3[0].id, ord_b.id)
-
-        # Free 4th slot
-        prep_orders[3].status = "prepared"
-        prep_orders[3].save()
-        promoted4 = promote_pending(self.canteen)
-        self.assertEqual(len(promoted4), 1)
-        self.assertEqual(promoted4[0].id, ord_d.id)
-
-    @override_settings(MAX_PREPARING=15, STAFF_CREDIT_MINUTES=8)
-    def test_2_staff_never_overtakes_student_order_placed_over_8_minutes_earlier(self):
+    @override_settings(MAX_PREPARING=15, STAFF_MAX_EXPRESS=5, STAFF_EXPRESS_ENABLED=True)
+    def test_3_guardrail_5_staff_express_6th_stays_pending(self):
         """
-        2. A staff order never overtakes a student order placed more than 8 minutes before it.
+        3. Guardrail: with 5 staff express orders preparing, a 6th staff order stays pending,
+           and is promoted before any pending student when a slot frees.
         """
-        prep_orders = [self._create_order(self.student_a, -10, status="preparing") for _ in range(15)]
+        prep_students = [self._create_order(self.student_a, -10 + i, status="preparing") for i in range(10)]
+        prep_staff = [self._create_order(self.staff_c, -5 + i, status="preparing") for i in range(5)]
 
-        ord_student = self._create_order(self.student_a, 0)  # 12:00 -> eff 12:00
-        ord_staff = self._create_order(self.staff_c, 9)     # 12:09 -> eff 12:01 (placed 9 min after)
-
-        prep_orders[0].status = "prepared"
-        prep_orders[0].save()
+        ord_student = self._create_order(self.student_b, 0, status="pending")
+        ord_staff_6 = self._create_order(self.staff_d, 1, status="pending")
 
         promoted = promote_pending(self.canteen)
-        self.assertEqual(len(promoted), 1)
-        self.assertEqual(promoted[0].id, ord_student.id)
+        ord_staff_6.refresh_from_db()
+        ord_student.refresh_from_db()
+        self.assertEqual(ord_staff_6.status, "pending")
+        self.assertEqual(ord_student.status, "pending")
 
-    @override_settings(MAX_PREPARING=15, STAFF_CREDIT_MINUTES=8)
-    def test_3_preparing_orders_not_displaced_by_staff_order(self):
+        # Free a slot
+        prep_students[0].status = "prepared"
+        prep_students[0].save()
+
+        promoted2 = promote_pending(self.canteen)
+        ord_staff_6.refresh_from_db()
+        ord_student.refresh_from_db()
+        self.assertEqual(ord_staff_6.status, "preparing")
+        self.assertEqual(ord_student.status, "pending")
+        self.assertIn(ord_staff_6, promoted2)
+
+    @override_settings(
+        MAX_PREPARING=15,
+        STAFF_EXPRESS_ENABLED=True,
+        STAFF_STATION_PRIORITY=True,
+        STATION_IN_PROGRESS_ALLOWANCE=True,
+        STAFF_BULK_PORTIONS_FIRST=True
+    )
+    def test_4_bill_estimates_with_in_progress_allowance(self):
         """
-        3. Orders already 'preparing' are not displaced by a new staff order.
+        4. Bill 3 biryani, 6 dosa, 1 ice cream, 3 juice, 1 cool drink, with 5 student dosas
+           and 2 student juices ahead at the stations (student orders preparing):
+           - student wait_minutes = 23 (existing expectation)
+           - staff wait_minutes = 15 (dosa: (1 allowance + 6) * 2 = 14, plus 1 packing; starts_in_minutes = 0)
         """
-        prep_orders = [self._create_order(self.student_a, -10, status="preparing") for _ in range(15)]
+        from Canteen_backend.wait_time import estimate_order_wait
+        # 5 student dosas and 2 student juices ahead preparing
+        self._create_order(
+            self.student_a,
+            minutes_offset=-10,
+            status="preparing",
+            items=[(self.prod_dosa, 5), (self.prod_juice, 2)]
+        )
+
+        bill_items = [
+            (self.prod_biryani, 3),
+            (self.prod_dosa, 6),
+            (self.prod_icecream, 1),
+            (self.prod_juice, 3),
+            (self.prod_cooldrink, 1),
+        ]
+
+        # Estimate for student
+        est_student = estimate_order_wait(self.canteen.id, bill_items, user=self.student_b)
+        self.assertEqual(est_student["wait_minutes"], 23)
+
+        # Estimate for staff
+        est_staff = estimate_order_wait(self.canteen.id, bill_items, user=self.staff_c)
+        self.assertEqual(est_staff["wait_minutes"], 15)
+        self.assertEqual(est_staff["starts_in_minutes"], 0)
+
+        # Confirm via canteen_timeline as well
+        ord_staff = self._create_order(self.staff_c, minutes_offset=0, status="preparing", items=bill_items)
+        tl = canteen_timeline(self.canteen.id)
+        self.assertEqual(tl[ord_staff.id]["wait_minutes"], 15)
+        self.assertEqual(tl[ord_staff.id]["starts_in_minutes"], 0)
+
+    @override_settings(
+        MAX_PREPARING=15,
+        STAFF_EXPRESS_ENABLED=True,
+        STAFF_STATION_PRIORITY=True,
+        STATION_IN_PROGRESS_ALLOWANCE=True,
+        STAFF_BULK_PORTIONS_FIRST=True
+    )
+    def test_5_same_staff_bill_when_no_student_units_at_stations(self):
+        """
+        5. Same staff bill when no student units are at the stations: wait_minutes = 13.
+        """
+        from Canteen_backend.wait_time import estimate_order_wait
+        bill_items = [
+            (self.prod_biryani, 3),
+            (self.prod_dosa, 6),
+            (self.prod_icecream, 1),
+            (self.prod_juice, 3),
+            (self.prod_cooldrink, 1),
+        ]
+
+        est_staff = estimate_order_wait(self.canteen.id, bill_items, user=self.staff_c)
+        self.assertEqual(est_staff["wait_minutes"], 13)
+        self.assertEqual(est_staff["starts_in_minutes"], 0)
+
+        ord_staff = self._create_order(self.staff_c, minutes_offset=0, status="preparing", items=bill_items)
+        tl = canteen_timeline(self.canteen.id)
+        self.assertEqual(tl[ord_staff.id]["wait_minutes"], 13)
+        self.assertEqual(tl[ord_staff.id]["starts_in_minutes"], 0)
+
+    @override_settings(MAX_PREPARING=15, STAFF_MAX_EXPRESS=5, STAFF_EXPRESS_ENABLED=True)
+    def test_6_student_wait_and_starts_in_grow_when_staff_order_arrives(self):
+        """
+        6. A student's wait_minutes and starts_in_minutes after a staff order arrives are greater
+           than or equal to before, and strictly greater for at least one student order.
+        """
+        # 15 preparing orders so student is pending
+        for i in range(15):
+            self._create_order(self.student_a, -10 + i, status="preparing", items=[(self.prod_dosa, 1)])
+
+        ord_student = self._create_order(self.student_b, 0, status="pending", items=[(self.prod_dosa, 2)])
+
+        tl_before = canteen_timeline(self.canteen.id)[ord_student.id]
+
+        # Staff order arrives with express lane (placed into preparing)
+        ord_staff = self._create_order(self.staff_c, 1, status="preparing", items=[(self.prod_dosa, 4)])
+
+        tl_after = canteen_timeline(self.canteen.id)[ord_student.id]
+
+        self.assertGreaterEqual(tl_after["wait_minutes"], tl_before["wait_minutes"])
+        self.assertGreaterEqual(tl_after["starts_in_minutes"], tl_before["starts_in_minutes"])
+        self.assertTrue(
+            tl_after["wait_minutes"] > tl_before["wait_minutes"] or
+            tl_after["starts_in_minutes"] > tl_before["starts_in_minutes"]
+        )
+
+    @override_settings(MAX_PREPARING=15, STAFF_MAX_EXPRESS=5, STAFF_EXPRESS_ENABLED=True)
+    def test_7_orders_already_preparing_never_displaced(self):
+        """
+        7. Orders already 'preparing' are never displaced.
+        """
+        prep_orders = [self._create_order(self.student_a, -10 + i, status="preparing") for i in range(15)]
         prep_ids = [o.id for o in prep_orders]
 
-        ord_staff = self._create_order(self.staff_c, 0)
+        self._create_order(self.staff_c, 0, status="pending")
         promote_pending(self.canteen)
 
         still_prep = Order.objects.filter(id__in=prep_ids, status="preparing").count()
         self.assertEqual(still_prep, 15)
 
-        ord_staff.refresh_from_db()
-        self.assertEqual(ord_staff.status, "pending")
-
-    @override_settings(MAX_PREPARING=15, STAFF_CREDIT_MINUTES=8)
-    def test_4_queue_position_and_starts_in_minutes_match_promotion_order(self):
+    @override_settings(MAX_PREPARING=15, STAFF_MAX_EXPRESS=5, STAFF_EXPRESS_ENABLED=True)
+    def test_8_canteen_isolation(self):
         """
-        4. queue_position and starts_in_minutes shown by the API match the actual promotion order from test 1.
-        """
-        [self._create_order(self.student_a, -10, status="preparing") for _ in range(15)]
-
-        ord_a = self._create_order(self.student_a, 0)   # 12:00 -> eff 12:00
-        ord_b = self._create_order(self.student_b, 2)   # 12:02 -> eff 12:02
-        ord_c = self._create_order(self.staff_c, 5)     # 12:05 -> eff 11:57
-        ord_d = self._create_order(self.staff_d, 20)    # 12:20 -> eff 12:12
-
-        tl = canteen_timeline(self.canteen.id)
-        self.assertEqual(tl[ord_c.id]["queue_position"], 1)
-        self.assertEqual(tl[ord_a.id]["queue_position"], 2)
-        self.assertEqual(tl[ord_b.id]["queue_position"], 3)
-        self.assertEqual(tl[ord_d.id]["queue_position"], 4)
-
-        self.assertLessEqual(tl[ord_c.id]["starts_in_minutes"], tl[ord_a.id]["starts_in_minutes"])
-        self.assertLessEqual(tl[ord_a.id]["starts_in_minutes"], tl[ord_b.id]["starts_in_minutes"])
-        self.assertLessEqual(tl[ord_b.id]["starts_in_minutes"], tl[ord_d.id]["starts_in_minutes"])
-
-    @override_settings(MAX_PREPARING=15, STAFF_CREDIT_MINUTES=8)
-    def test_5_canteen_isolation(self):
-        """
-        5. A staff order in canteen X has no effect on queue position or estimates in canteen Y.
+        8. A staff order in canteen X changes nothing in canteen Y.
         """
         canteen_y = Canteen.objects.create(id=uuid.uuid4(), name="Canteen Y", location="North")
         prod_y = Product.objects.create(
@@ -467,130 +601,75 @@ class StaffPriorityOrderFlowTests(TestCase):
             type="Veg",
             canteen=canteen_y
         )
-
         ord_y = Order.objects.create(user=self.student_a, canteen=canteen_y, status="pending", total_price=40.0)
         OrderItem.objects.create(order=ord_y, product=prod_y, quantity=1, price=40.0)
 
         tl_before = canteen_timeline(canteen_y.id)[ord_y.id]
 
-        # Create staff order in canteen X
+        # Create staff order in self.canteen (canteen X)
         self._create_order(self.staff_c, 0, canteen=self.canteen)
 
         tl_after = canteen_timeline(canteen_y.id)[ord_y.id]
         self.assertEqual(tl_before["queue_position"], tl_after["queue_position"])
         self.assertEqual(tl_before["wait_minutes"], tl_after["wait_minutes"])
+        self.assertEqual(tl_before["starts_in_minutes"], tl_after["starts_in_minutes"])
 
-    @override_settings(MAX_PREPARING=15, STAFF_CREDIT_MINUTES=8)
-    def test_role_staff_not_in_group_is_treated_as_staff(self):
+    @override_settings(MAX_PREPARING=15, STAFF_MAX_EXPRESS=5, STAFF_EXPRESS_ENABLED=True)
+    def test_9_quick_only_orders_behavior_unchanged(self):
         """
-        1. A user with role 'staff' and NOT in the group is treated as staff by get_staff_user_ids / effective_time.
+        9. Quick-only orders behave exactly as before.
         """
-        u_staff = User.objects.create_user(username="solo_staff", password="password")
-        UserProfile.objects.create(user=u_staff, role="staff")
-        # Ensure user is definitely NOT in the Staff group
-        u_staff.groups.remove(self.staff_group)
-        self.assertNotIn(self.staff_group, u_staff.groups.all())
+        # Fill preparing slots
+        for i in range(15):
+            self._create_order(self.student_a, -10 + i, status="preparing")
 
-        # Must be treated as staff
-        self.assertTrue(is_staff_member(u_staff))
-        self.assertIn(u_staff.id, get_staff_user_ids([u_staff.id]))
+        quick_ord = self._create_order(
+            self.student_b,
+            0,
+            status="pending",
+            items=[(self.prod_icecream, 1), (self.prod_cooldrink, 1)]
+        )
+        self.assertTrue(is_order_quick_only(quick_ord, self.canteen.id))
 
-        ord_staff = self._create_order(u_staff, 10)
-        eff_time, _ = effective_time(ord_staff)
-        self.assertEqual(eff_time, ord_staff.created_at - timedelta(minutes=8))
-        self.assertTrue(OrderSerializer(ord_staff).data["priority"])
+        promote_pending(self.canteen)
+        quick_ord.refresh_from_db()
+        self.assertEqual(quick_ord.status, "preparing")
 
-    @override_settings(MAX_PREPARING=15, STAFF_CREDIT_MINUTES=8)
-    def test_user_in_group_with_role_user_is_not_treated_as_staff(self):
+        tl = canteen_timeline(self.canteen.id)
+        self.assertEqual(tl[quick_ord.id]["wait_minutes"], 2)
+        self.assertEqual(tl[quick_ord.id]["starts_in_minutes"], 0)
+        self.assertIsNone(tl[quick_ord.id]["queue_position"])
+
+    @override_settings(MAX_PREPARING=15, STAFF_MAX_EXPRESS=5, STAFF_EXPRESS_ENABLED=True)
+    def test_10_promote_and_timeline_agreement(self):
         """
-        2. A user in the 'Staff' group with role 'user' is NOT treated as staff.
+        10. promote_pending and canteen_timeline agree on which orders are staff-express and on ordering.
         """
-        u_imposter = User.objects.create_user(username="imposter", password="password")
-        UserProfile.objects.create(user=u_imposter, role="user")
-        u_imposter.groups.add(self.staff_group)
-        self.assertIn(self.staff_group, u_imposter.groups.all())
+        # 15 preparing orders so cap is reached
+        for i in range(15):
+            self._create_order(self.student_a, -20 + i, status="preparing")
 
-        # Must NOT be treated as staff
-        self.assertFalse(is_staff_member(u_imposter))
-        self.assertNotIn(u_imposter.id, get_staff_user_ids([u_imposter.id]))
+        ord_stu1 = self._create_order(self.student_a, 0, status="pending")
+        ord_staff = self._create_order(self.staff_c, 1, status="pending")
+        ord_stu2 = self._create_order(self.student_b, 2, status="pending")
 
-        ord_imposter = self._create_order(u_imposter, 10)
-        eff_time, _ = effective_time(ord_imposter)
-        self.assertEqual(eff_time, ord_imposter.created_at)
-        self.assertFalse(OrderSerializer(ord_imposter).data["priority"])
+        tl = canteen_timeline(self.canteen.id)
+        # Staff is express admitted
+        self.assertEqual(tl[ord_staff.id]["starts_in_minutes"], 0)
+        self.assertIsNone(tl[ord_staff.id]["queue_position"])
+        # Students are in queue
+        self.assertEqual(tl[ord_stu1.id]["queue_position"], 1)
+        self.assertEqual(tl[ord_stu2.id]["queue_position"], 2)
 
-    @override_settings(MAX_PREPARING=15, STAFF_CREDIT_MINUTES=8)
-    def test_user_with_no_userprofile_does_not_crash_and_is_non_staff(self):
+        # promote_pending promotes staff first past cap
+        promoted = promote_pending(self.canteen)
+        self.assertEqual(len(promoted), 1)
+        self.assertEqual(promoted[0].id, ord_staff.id)
+
+    @override_settings(MAX_PREPARING=15, STAFF_MAX_EXPRESS=5, STAFF_EXPRESS_ENABLED=True)
+    def test_11_query_count_does_not_grow_with_orders(self):
         """
-        3. A user with no UserProfile does not crash and is non-staff.
-        """
-        u_none = User.objects.create_user(username="noprofile", password="password")
-        UserProfile.objects.filter(user=u_none).delete()
-        self.assertFalse(UserProfile.objects.filter(user=u_none).exists())
-
-        # Must not raise and must evaluate to False
-        self.assertFalse(is_staff_member(u_none))
-        self.assertEqual(get_staff_user_ids([u_none.id]), set())
-
-        ord_none = self._create_order(u_none, 10)
-        eff_time, _ = effective_time(ord_none)
-        self.assertEqual(eff_time, ord_none.created_at)
-        self.assertFalse(OrderSerializer(ord_none).data["priority"])
-
-    @override_settings(MAX_PREPARING=15, STAFF_CREDIT_MINUTES=8)
-    def test_get_staff_user_ids_50_users_executes_exactly_one_query(self):
-        """
-        4. get_staff_user_ids for 50 user ids executes exactly one query.
-        """
-        u_ids = []
-        for i in range(50):
-            u = User.objects.create_user(username=f"bulk_user_{i}", password="password")
-            role = "staff" if i % 2 == 0 else "user"
-            UserProfile.objects.create(user=u, role=role)
-            u_ids.append(u.id)
-
-        with self.assertNumQueries(1):
-            staff_ids = get_staff_user_ids(u_ids)
-
-        self.assertEqual(len(staff_ids), 25)
-
-    @override_settings(MAX_PREPARING=15, STAFF_CREDIT_MINUTES=8)
-    def test_sync_staff_group_command_dry_run_and_execution(self):
-        """
-        6. The sync_staff_group command in --dry-run changes nothing; a real run fixes a
-           mismatched group and a second run reports no changes.
-        """
-        from io import StringIO
-
-        u_staff_mismatch = User.objects.create_user(username="mismatch_staff", password="password")
-        UserProfile.objects.create(user=u_staff_mismatch, role="staff")
-        u_staff_mismatch.groups.remove(self.staff_group)
-
-        u_user_mismatch = User.objects.create_user(username="mismatch_user", password="password")
-        UserProfile.objects.create(user=u_user_mismatch, role="user")
-        u_user_mismatch.groups.add(self.staff_group)
-
-        # 1. Dry run
-        out_dry = StringIO()
-        call_command("sync_staff_group", dry_run=True, stdout=out_dry)
-        self.assertNotIn(self.staff_group, u_staff_mismatch.groups.all())
-        self.assertIn(self.staff_group, u_user_mismatch.groups.all())
-
-        # 2. Real run
-        out_real = StringIO()
-        call_command("sync_staff_group", stdout=out_real)
-        self.assertIn(self.staff_group, u_staff_mismatch.groups.all())
-        self.assertNotIn(self.staff_group, u_user_mismatch.groups.all())
-
-        # 3. Second run reports no changes
-        out_second = StringIO()
-        call_command("sync_staff_group", stdout=out_second)
-        self.assertIn("already fully in sync", out_second.getvalue())
-
-    @override_settings(MAX_PREPARING=15, STAFF_CREDIT_MINUTES=8)
-    def test_7_query_count_does_not_grow_with_orders(self):
-        """
-        Query count for the orders endpoint does not grow with the number of orders (no N+1).
+        11. The orders endpoint query count does not grow with the number of orders (no N+1).
         """
         from django.db import connection
         from django.test.utils import CaptureQueriesContext
@@ -618,3 +697,135 @@ class StaffPriorityOrderFlowTests(TestCase):
         self.assertEqual(resp1.status_code, 200)
         self.assertEqual(resp2.status_code, 200)
         self.assertEqual(count_3, count_10)
+
+    @override_settings(
+        MAX_PREPARING=15,
+        STAFF_EXPRESS_ENABLED=False,
+        STAFF_STATION_PRIORITY=False,
+        STAFF_CREDIT_MINUTES=8
+    )
+    def test_12_express_disabled_reproduces_previous_behaviour(self):
+        """
+        12. STAFF_EXPRESS_ENABLED = False and STAFF_STATION_PRIORITY = False reproduce
+            the previous behaviour (8-minute bounded credit, no cap skipping).
+        """
+        prep_orders = [self._create_order(self.student_a, -10 + i, status="preparing") for i in range(15)]
+
+        ord_stu = self._create_order(self.student_a, 0)
+        ord_staff_late = self._create_order(self.staff_c, 9)  # 9 min later -> eff 12:01 vs student 12:00
+
+        # No cap skip: when 15 are preparing, staff cannot skip cap
+        promoted = promote_pending(self.canteen)
+        self.assertEqual(len(promoted), 0)
+
+        # Free 1 slot
+        prep_orders[0].status = "prepared"
+        prep_orders[0].save()
+
+        # Student placed 9 min earlier beats staff placed 9 min later (exceeds 8 min credit)
+        promoted2 = promote_pending(self.canteen)
+        self.assertEqual(len(promoted2), 1)
+        self.assertEqual(promoted2[0].id, ord_stu.id)
+
+    @override_settings(MAX_PREPARING=15, STAFF_CREDIT_MINUTES=8, STAFF_EXPRESS_ENABLED=False)
+    def test_role_staff_not_in_group_is_treated_as_staff(self):
+        """
+        A user with role 'staff' and NOT in the group is treated as staff.
+        """
+        u_staff = User.objects.create_user(username="solo_staff", password="password")
+        UserProfile.objects.create(user=u_staff, role="staff")
+        u_staff.groups.remove(self.staff_group)
+        self.assertNotIn(self.staff_group, u_staff.groups.all())
+
+        self.assertTrue(is_staff_member(u_staff))
+        self.assertIn(u_staff.id, get_staff_user_ids([u_staff.id]))
+
+        ord_staff = self._create_order(u_staff, 10)
+        eff_time, _ = effective_time(ord_staff)
+        self.assertEqual(eff_time, ord_staff.created_at - timedelta(minutes=8))
+        self.assertTrue(OrderSerializer(ord_staff).data["priority"])
+
+    @override_settings(MAX_PREPARING=15, STAFF_CREDIT_MINUTES=8, STAFF_EXPRESS_ENABLED=False)
+    def test_user_in_group_with_role_user_is_not_treated_as_staff(self):
+        """
+        A user in the 'Staff' group with role 'user' is NOT treated as staff.
+        """
+        u_imposter = User.objects.create_user(username="imposter", password="password")
+        UserProfile.objects.create(user=u_imposter, role="user")
+        u_imposter.groups.add(self.staff_group)
+        self.assertIn(self.staff_group, u_imposter.groups.all())
+
+        self.assertFalse(is_staff_member(u_imposter))
+        self.assertNotIn(u_imposter.id, get_staff_user_ids([u_imposter.id]))
+
+        ord_imposter = self._create_order(u_imposter, 10)
+        eff_time, _ = effective_time(ord_imposter)
+        self.assertEqual(eff_time, ord_imposter.created_at)
+        self.assertFalse(OrderSerializer(ord_imposter).data["priority"])
+
+    @override_settings(MAX_PREPARING=15, STAFF_CREDIT_MINUTES=8, STAFF_EXPRESS_ENABLED=False)
+    def test_user_with_no_userprofile_does_not_crash_and_is_non_staff(self):
+        """
+        A user with no UserProfile does not crash and is non-staff.
+        """
+        u_none = User.objects.create_user(username="noprofile", password="password")
+        UserProfile.objects.filter(user=u_none).delete()
+        self.assertFalse(UserProfile.objects.filter(user=u_none).exists())
+
+        self.assertFalse(is_staff_member(u_none))
+        self.assertEqual(get_staff_user_ids([u_none.id]), set())
+
+        ord_none = self._create_order(u_none, 10)
+        eff_time, _ = effective_time(ord_none)
+        self.assertEqual(eff_time, ord_none.created_at)
+        self.assertFalse(OrderSerializer(ord_none).data["priority"])
+
+    @override_settings(MAX_PREPARING=15, STAFF_CREDIT_MINUTES=8)
+    def test_get_staff_user_ids_50_users_executes_exactly_one_query(self):
+        """
+        get_staff_user_ids for 50 user ids executes exactly one query.
+        """
+        u_ids = []
+        for i in range(50):
+            u = User.objects.create_user(username=f"bulk_user_{i}", password="password")
+            role = "staff" if i % 2 == 0 else "user"
+            UserProfile.objects.create(user=u, role=role)
+            u_ids.append(u.id)
+
+        with self.assertNumQueries(1):
+            staff_ids = get_staff_user_ids(u_ids)
+
+        self.assertEqual(len(staff_ids), 25)
+
+    @override_settings(MAX_PREPARING=15, STAFF_CREDIT_MINUTES=8)
+    def test_sync_staff_group_command_dry_run_and_execution(self):
+        """
+        The sync_staff_group command in --dry-run changes nothing; a real run fixes a
+        mismatched group and a second run reports no changes.
+        """
+        from io import StringIO
+
+        u_staff_mismatch = User.objects.create_user(username="mismatch_staff", password="password")
+        UserProfile.objects.create(user=u_staff_mismatch, role="staff")
+        u_staff_mismatch.groups.remove(self.staff_group)
+
+        u_user_mismatch = User.objects.create_user(username="mismatch_user", password="password")
+        UserProfile.objects.create(user=u_user_mismatch, role="user")
+        u_user_mismatch.groups.add(self.staff_group)
+
+        # 1. Dry run
+        out_dry = StringIO()
+        call_command("sync_staff_group", dry_run=True, stdout=out_dry)
+        self.assertNotIn(self.staff_group, u_staff_mismatch.groups.all())
+        self.assertIn(self.staff_group, u_user_mismatch.groups.all())
+
+        # 2. Real run
+        out_real = StringIO()
+        call_command("sync_staff_group", stdout=out_real)
+        self.assertIn(self.staff_group, u_staff_mismatch.groups.all())
+        self.assertNotIn(self.staff_group, u_user_mismatch.groups.all())
+
+        # 3. Second run reports no changes
+        out_second = StringIO()
+        call_command("sync_staff_group", stdout=out_second)
+        self.assertIn("already fully in sync", out_second.getvalue())

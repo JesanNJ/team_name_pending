@@ -14,7 +14,7 @@ export function PreparedSection({ orders, loading, handleMoveOrders }) {
                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                                         <strong>Order #{item.id}</strong>
-                                        {item.priority && <span className="staff-priority-badge">Staff</span>}
+                                        {item.priority && <span className="staff-priority-badge">STAFF</span>}
                                     </div>
                                     <span className="order-status-badge ready">Ready for Pickup</span>
                                 </div>

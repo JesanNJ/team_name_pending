@@ -5,6 +5,14 @@ PACKING_MINUTES = getattr(settings, "PACKING_MINUTES", 1)
 MAX_PREPARING = getattr(settings, "MAX_PREPARING", 15)
 STAFF_CREDIT_MINUTES = getattr(settings, "STAFF_CREDIT_MINUTES", 8)
 
+# Staff Express Lane and Station Priority Settings
+STAFF_EXPRESS_ENABLED = getattr(settings, "STAFF_EXPRESS_ENABLED", True)
+STAFF_MAX_EXPRESS = getattr(settings, "STAFF_MAX_EXPRESS", 5)
+STAFF_STATION_PRIORITY = getattr(settings, "STAFF_STATION_PRIORITY", True)
+STATION_IN_PROGRESS_ALLOWANCE = getattr(settings, "STATION_IN_PROGRESS_ALLOWANCE", True)
+STAFF_BULK_PORTIONS_FIRST = getattr(settings, "STAFF_BULK_PORTIONS_FIRST", True)
+
+
 # Standard station definitions
 STANDARD_STATIONS = {
     "dosa_counter": {

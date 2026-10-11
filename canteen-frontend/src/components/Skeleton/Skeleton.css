@@ -53,13 +53,15 @@
    2. Menu Page - Product Card Skeleton
    ========================================================= */
 .product-card-skeleton {
-  width: 250px;
+  width: 100%;
+  max-width: 100%;
   background: #ffffff;
   border-radius: 12px;
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.07);
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
 }
 
 .product-card-skeleton .skeleton-img-box {
@@ -414,3 +416,63 @@
   height: 38px;
   border-radius: 6px;
 }
+
+/* =========================================================
+   Responsive Breakpoints for Skeletons
+   ========================================================= */
+
+@media (max-width: 640px) {
+  .product-card-skeleton .skeleton-img-box {
+    height: 120px;
+  }
+
+  .product-card-skeleton .skeleton-info {
+    padding: 10px;
+    gap: 6px;
+  }
+
+  .product-card-skeleton .skeleton-line-title {
+    height: 16px;
+  }
+
+  .product-card-skeleton .skeleton-line-price {
+    height: 14px;
+  }
+
+  .product-card-skeleton .skeleton-qty-box {
+    height: 30px;
+    margin-top: 4px;
+  }
+
+  .product-card-skeleton .skeleton-btn-box {
+    height: 32px;
+  }
+}
+
+@media (max-width: 360px) {
+  .product-card-skeleton .skeleton-img-box {
+    height: 140px;
+  }
+}
+
+@media (max-width: 600px) {
+  .cart-card-skeleton {
+    flex-direction: row;
+    align-items: stretch;
+    border-radius: 10px;
+  }
+
+  .cart-card-skeleton .skeleton-cart-img {
+    width: 110px;
+    min-width: 110px;
+    height: auto;
+    min-height: 100px;
+  }
+
+  .cart-card-skeleton .skeleton-cart-info {
+    padding: 10px 12px;
+    flex: 1;
+    justify-content: space-between;
+  }
+}
+

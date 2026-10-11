@@ -347,4 +347,161 @@ body {
   cursor: not-allowed;
 }
 
+/* ====================================================
+   Responsive Styles for Mobile & Tablets (Cart Page)
+   ==================================================== */
+
+@media (max-width: 900px) {
+  .cart-layout {
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .cart-row-container {
+    width: 100%;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  .cart-summary {
+    width: 100%;
+    flex: none;
+    position: static;
+  }
+}
+
+@media (max-width: 600px) {
+  .cart-section {
+    padding: 10px 14px;
+    margin-top: 6px;
+  }
+
+  .cart-title {
+    font-size: 20px;
+    margin-bottom: 14px;
+  }
+
+  .cart-row-container {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  /* Sleek horizontal card layout for mobile food cart */
+  .cart-card {
+    flex-direction: row;
+    align-items: stretch;
+    border-radius: 10px;
+  }
+
+  .cart-img {
+    width: 110px;
+    min-width: 110px;
+    height: auto;
+    min-height: 100px;
+    object-fit: cover;
+  }
+
+  .cart-info {
+    padding: 10px 12px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .cart-title-item {
+    font-size: 15px;
+    margin-bottom: 4px;
+    line-height: 1.25;
+  }
+
+  .cart-price {
+    font-size: 13.5px;
+    margin-bottom: 8px;
+  }
+
+  .cart-actions {
+    gap: 8px;
+  }
+
+  .qty button {
+    width: 24px;
+    height: 24px;
+    font-size: 15px;
+  }
+
+  .qty span {
+    font-size: 13px;
+  }
+
+  .remove-btn {
+    padding: 5px 9px;
+    font-size: 11.5px;
+  }
+
+  .cart-summary {
+    padding: 18px 16px;
+    border-radius: 10px;
+  }
+
+  .cart-summary h3 {
+    font-size: 18px;
+    margin-bottom: 14px;
+  }
+
+  .summary-item,
+  .summary-row {
+    font-size: 14px;
+    margin-bottom: 8px;
+  }
+
+  .summary-row.total {
+    font-size: 16px;
+    margin-top: 10px;
+  }
+
+  .checkout-btn {
+    padding: 12px;
+    font-size: 15px;
+    margin-top: 16px;
+  }
+
+  /* Mobile confirm modal */
+  .confirm-modal-box {
+    width: 95%;
+    max-width: 440px;
+    padding: 18px 14px;
+    max-height: 90vh;
+    overflow-y: auto;
+    gap: 12px;
+  }
+
+  .confirm-modal-header h3 {
+    font-size: 18px;
+  }
+
+  .confirm-modal-subtitle {
+    font-size: 12px;
+  }
+
+  .confirm-total-banner {
+    padding: 10px 12px;
+    font-size: 14.5px;
+  }
+
+  .confirm-total-banner strong {
+    font-size: 16.5px;
+  }
+
+  .confirm-modal-actions {
+    gap: 8px;
+  }
+
+  .btn-cancel-modal,
+  .btn-confirm-modal {
+    padding: 10px;
+    font-size: 13px;
+  }
+}
+
 

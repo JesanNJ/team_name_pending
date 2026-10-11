@@ -10,17 +10,29 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load environment variables from .env file if it exists
+for _env_path in [BASE_DIR / '.env', BASE_DIR.parent / '.env']:
+    if _env_path.exists():
+        with open(_env_path, 'r', encoding='utf-8') as _f:
+            for _line in _f:
+                _line = _line.strip()
+                if _line and not _line.startswith('#') and '=' in _line:
+                    _k, _v = _line.split('=', 1)
+                    os.environ.setdefault(_k.strip(), _v.strip().strip('"').strip("'"))
+        break
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-h%jtwvxvr(85=_vor1tr5wjs59)$4v19y9u#3sxw)#my+84ri7'
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-default-local-dev-key')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -94,11 +106,11 @@ WSGI_APPLICATION = 'myproject.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'postgres',
-        'USER': 'postgres.bxrnotfvoazmfdmqamwg',
-        'PASSWORD': '3QzRGvNOMqhn1tzf',
-        'HOST': 'aws-0-ap-northeast-1.pooler.supabase.com',
-        'PORT': '5432',
+        'NAME': os.environ.get('DB_NAME', 'postgres'),
+        'USER': os.environ.get('DB_USER', ''),
+        'PASSWORD': os.environ.get('DB_PASSWORD', ''),
+        'HOST': os.environ.get('DB_HOST', ''),
+        'PORT': os.environ.get('DB_PORT', '5432'),
     }
 }
 
@@ -146,3 +158,12 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Canteen Order Flow & Kitchen Timings
 MAX_PREPARING = 15
 PACKING_MINUTES = 1
+
+# Brevo Email Notification Settings
+BREVO_API_KEY = os.environ.get("BREVO_API_KEY", "")
+BREVO_SMTP_LOGIN = os.environ.get("BREVO_SMTP_LOGIN", "")
+BREVO_SMTP_SERVER = os.environ.get("BREVO_SMTP_SERVER", "smtp-relay.brevo.com")
+BREVO_SMTP_PORT = int(os.environ.get("BREVO_SMTP_PORT", 587))
+BREVO_SENDER_EMAIL = os.environ.get("BREVO_SENDER_EMAIL", "hari367854@gmail.com")
+BREVO_SENDER_NAME = os.environ.get("BREVO_SENDER_NAME", "Amrita Canteen")
+

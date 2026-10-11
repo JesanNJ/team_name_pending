@@ -314,11 +314,28 @@ export function Admin() {
                 </div>
             </div>
 
-            {activeTab === "pending" && <OrdersSection orders={orders} loading={loadingOrders} handleMoveOrders={handleMoveOrders} />}
-            {activeTab === "preparing" && <PreparingSection orders={orders} loading={loadingOrders} handleMoveOrders={handleMoveOrders} />}
-            {activeTab === "prepared" && <PreparedSection orders={orders} loading={loadingOrders} handleMoveOrders={handleMoveOrders} />}
-            {activeTab === "delivered" && <DeliveredSection orders={orders} loading={loadingOrders} />}
-            {activeTab === "cancelled" && <CancelledSection orders={orders} loading={loadingOrders} />}
+            {(() => {
+                const sortedOrders = Array.isArray(orders) ? [...orders].sort((a, b) => {
+                    const aPrio = a.priority ? 1 : 0;
+                    const bPrio = b.priority ? 1 : 0;
+                    if (bPrio !== aPrio) {
+                        return bPrio - aPrio; // staff first
+                    }
+                    const aDate = a.created_at ? new Date(a.created_at).getTime() : (a.id || 0);
+                    const bDate = b.created_at ? new Date(b.created_at).getTime() : (b.id || 0);
+                    return aDate - bDate; // then created_at ascending
+                }) : [];
+
+                return (
+                    <>
+                        {activeTab === "pending" && <OrdersSection orders={sortedOrders} loading={loadingOrders} handleMoveOrders={handleMoveOrders} />}
+                        {activeTab === "preparing" && <PreparingSection orders={sortedOrders} loading={loadingOrders} handleMoveOrders={handleMoveOrders} />}
+                        {activeTab === "prepared" && <PreparedSection orders={sortedOrders} loading={loadingOrders} handleMoveOrders={handleMoveOrders} />}
+                        {activeTab === "delivered" && <DeliveredSection orders={sortedOrders} loading={loadingOrders} />}
+                        {activeTab === "cancelled" && <CancelledSection orders={sortedOrders} loading={loadingOrders} />}
+                    </>
+                );
+            })()}
         </>
     );
 }

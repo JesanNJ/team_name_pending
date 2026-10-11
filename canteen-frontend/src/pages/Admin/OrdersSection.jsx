@@ -13,7 +13,7 @@ export function OrdersSection({ orders, loading, handleMoveOrders }) {
                             <div className="order-card" key={item.id}>
                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
                                     <strong style={{ margin: 0 }}>Order #{item.id}</strong>
-                                    {item.priority && <span className="staff-priority-badge">Staff</span>}
+                                    {item.priority && <span className="staff-priority-badge">STAFF</span>}
                                 </div>
                                 <p className='canteen-name'>{item.canteen_name}</p>
                                 <p className='items'>

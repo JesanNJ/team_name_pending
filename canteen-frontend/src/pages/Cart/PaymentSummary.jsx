@@ -137,6 +137,9 @@ export function PaymentSummary({ cartData, setCartData, canteenId, getAccessToke
                 >
                     Place Order
                 </button>
+                <div style={{ fontSize: "12px", color: "#718096", marginTop: "10px", textAlign: "center" }}>
+                    Staff orders may be served first during busy times.
+                </div>
             </div>
 
             {/* Confirmation Modal */}

@@ -319,3 +319,28 @@ body{
   text-align: center;
 }
 
+/* ====================================================
+   Responsive Styles for Mobile & Tablets (Orders Page)
+   ==================================================== */
+
+@media (max-width: 600px) {
+  .orders-page {
+    padding: 16px 12px;
+  }
+
+  .orders-page h2 {
+    font-size: 20px;
+    margin-bottom: 14px;
+  }
+
+  .orders-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .order-card {
+    padding: 14px;
+  }
+}
+
+
