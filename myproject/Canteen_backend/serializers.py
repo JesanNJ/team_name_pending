@@ -194,8 +194,12 @@ class OrderSerializer(serializers.ModelSerializer):
 
     def get_priority(self, obj):
         user = getattr(obj, "user", None)
-        if user and hasattr(user, "_prefetched_objects_cache") and "groups" in user._prefetched_objects_cache:
-            return any(g.name == "Staff" for g in user.groups.all())
+        try:
+            profile = getattr(user, "userprofile", None)
+            if profile is not None:
+                return getattr(profile, "role", "") == "staff"
+        except Exception:
+            pass
 
         request = self.context.get("request") if getattr(self, "context", None) else None
         if request is not None:

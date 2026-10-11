@@ -296,8 +296,8 @@ def user_orders(request):
     user = request.user
     orders = (
         Order.objects.filter(user=user)
-        .select_related("canteen", "user")
-        .prefetch_related("user__groups", "items__product")
+        .select_related("canteen", "user", "user__userprofile")
+        .prefetch_related("items__product")
         .order_by('-created_at')
     )
     serializer = OrderSerializer(orders, many=True, context={"request": request})
@@ -340,8 +340,8 @@ def orders_by_status(request, status=None):
         orders = orders.filter(canteen_id=canteen_id)
 
     orders = (
-        orders.select_related("canteen", "user")
-        .prefetch_related("user__groups", "items__product")
+        orders.select_related("canteen", "user", "user__userprofile")
+        .prefetch_related("items__product")
         .order_by("-id")
     )
     serializer = OrderSerializer(orders, many=True, context={"request": request})

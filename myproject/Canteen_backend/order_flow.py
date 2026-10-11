@@ -11,26 +11,32 @@ logger = logging.getLogger(__name__)
 
 def is_staff_member(user):
     """
-    Checks if a user belongs to the Django auth Group named 'Staff'.
-    Does not use Django's is_staff flag.
+    Checks if a user has UserProfile.role == "staff".
+    Users without a UserProfile row are treated as non-staff and do not raise.
     """
     if not user or not getattr(user, "is_authenticated", False):
         return False
-    if hasattr(user, "_prefetched_objects_cache") and "groups" in user._prefetched_objects_cache:
-        return any(g.name == "Staff" for g in user.groups.all())
-    return user.groups.filter(name="Staff").exists()
+    try:
+        profile = getattr(user, "userprofile", None)
+        if profile is not None:
+            return getattr(profile, "role", "") == "staff"
+    except Exception:
+        return False
+    from .models import UserProfile
+    return UserProfile.objects.filter(user=user, role="staff").exists()
 
 
 def get_staff_user_ids(user_ids):
     """
-    Given an iterable of user IDs, returns a set of user IDs that belong to the 'Staff' group.
+    Given an iterable of user IDs, returns a set of user IDs that have UserProfile.role == "staff".
     Executes in a single query to prevent N+1 queries.
+    Users without a UserProfile row are safely excluded and do not raise.
     """
     if not user_ids:
         return set()
-    from django.contrib.auth.models import User
+    from .models import UserProfile
     return set(
-        User.objects.filter(groups__name="Staff", id__in=user_ids).values_list("id", flat=True)
+        UserProfile.objects.filter(user_id__in=user_ids, role="staff").values_list("user_id", flat=True)
     )
 
 
