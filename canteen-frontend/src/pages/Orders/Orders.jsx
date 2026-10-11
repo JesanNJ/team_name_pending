@@ -3,6 +3,7 @@ import { OrderCard } from "./OrderCard";
 import "./orders.css";
 import { useState, useEffect } from "react";
 import { OrderSkeletonGrid } from "../../components/Skeleton/Skeleton";
+import { supabase } from "../../supabaseClient";
 
 
 async function getAccessToken() {
@@ -118,7 +119,21 @@ export function Orders() {
 
         fetchOrders(true);
 
-        // Polling every 30 seconds for live order & queue updates
+        // Supabase Realtime: instant order status & queue updates
+        const channel = supabase
+            .channel('orders-realtime-student')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'Canteen_backend_order' },
+                () => {
+                    if (isMounted) {
+                        fetchOrders(false);
+                    }
+                }
+            )
+            .subscribe();
+
+        // Polling fallback every 30 seconds for live order & queue updates
         const intervalId = setInterval(() => {
             fetchOrders(false);
         }, 30000);
@@ -126,6 +141,7 @@ export function Orders() {
         return () => {
             isMounted = false;
             clearInterval(intervalId);
+            supabase.removeChannel(channel);
         };
     }, []);
 

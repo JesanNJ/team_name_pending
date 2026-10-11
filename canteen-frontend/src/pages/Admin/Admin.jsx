@@ -9,6 +9,7 @@ import { PreparedSection } from './PreparedSection';
 import { DeliveredSection } from './DeliveredSection';
 import { CancelledSection } from './CancelledSection';
 import { AdminAuthSkeleton } from '../../components/Skeleton/Skeleton';
+import { supabase } from '../../supabaseClient';
 
 async function getAccessToken() {
     let access = localStorage.getItem("access");
@@ -144,32 +145,53 @@ export function Admin() {
     }, [isAdmin, selectedCanteenId, fetchOrderCounts]);
 
     // Fetch orders for active tab and selected canteen
+    const fetchOrders = useCallback(async (showLoading = true) => {
+        if (!selectedCanteenId) return;
+        if (showLoading) setLoadingOrders(true);
+        try {
+            const access = await getAccessToken();
+            const res = await axios.get(
+                `http://127.0.0.1:8000/api/orders/${activeTab}/`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${access}`,
+                    },
+                    params: { canteen_id: selectedCanteenId },
+                }
+            );
+            setOrders(res.data);
+        } catch (err) {
+            console.error("Error fetching orders:", err);
+        } finally {
+            if (showLoading) setLoadingOrders(false);
+        }
+    }, [activeTab, selectedCanteenId]);
+
+    useEffect(() => {
+        if (!isAdmin || !selectedCanteenId) return;
+        fetchOrders(true);
+    }, [isAdmin, selectedCanteenId, fetchOrders]);
+
+    // Supabase Realtime: instant updates for admin dashboard & badge counts
     useEffect(() => {
         if (!isAdmin || !selectedCanteenId) return;
 
-        const fetchOrders = async () => {
-            setLoadingOrders(true);
-            try {
-                const access = await getAccessToken();
-                const res = await axios.get(
-                    `http://127.0.0.1:8000/api/orders/${activeTab}/`,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${access}`,
-                        },
-                        params: { canteen_id: selectedCanteenId },
-                    }
-                );
-                setOrders(res.data);
-            } catch (err) {
-                console.error("Error fetching orders:", err);
-            } finally {
-                setLoadingOrders(false);
-            }
-        };
+        const channel = supabase
+            .channel('orders-realtime-admin')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'Canteen_backend_order' },
+                () => {
+                    fetchOrders(false);
+                    fetchOrderCounts();
+                }
+            )
+            .subscribe();
 
-        fetchOrders();
-    }, [activeTab, isAdmin, selectedCanteenId]);
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [isAdmin, selectedCanteenId, fetchOrders, fetchOrderCounts]);
 
     const handleMoveOrders = async (orderId, newStatus) => {
         try {
