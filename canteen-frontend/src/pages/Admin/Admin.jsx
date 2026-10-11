@@ -48,13 +48,22 @@ export function Admin() {
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
 
-    // Use URL search query parameter for activeTab (nuqs / URL state)
+    // Use URL search query parameter for activeTab and selected canteen
     const validTabs = ["pending", "preparing", "prepared", "delivered", "cancelled"];
     const queryTab = searchParams.get("tab");
     const activeTab = validTabs.includes(queryTab) ? queryTab : "pending";
+    const queryCanteen = searchParams.get("canteen");
+
+    const [canteens, setCanteens] = useState([]);
+    const [selectedCanteenId, setSelectedCanteenId] = useState(queryCanteen || "");
+
+    const handleCanteenChange = (canteenId) => {
+        setSelectedCanteenId(canteenId);
+        setSearchParams({ tab: activeTab, canteen: canteenId });
+    };
 
     const setActiveTab = (tab) => {
-        setSearchParams({ tab });
+        setSearchParams({ tab, ...(selectedCanteenId ? { canteen: selectedCanteenId } : {}) });
     };
 
     const [orders, setOrders] = useState([]);
@@ -95,27 +104,48 @@ export function Admin() {
         checkAdminStatus();
     }, []);
 
-    // Fetch order counts by status (numbers/counts for each tab)
+    // Fetch list of canteens
+    useEffect(() => {
+        const fetchCanteens = async () => {
+            try {
+                const res = await axios.get("http://127.0.0.1:8000/api/canteens/");
+                setCanteens(res.data);
+                if (res.data.length > 0) {
+                    if (!queryCanteen) {
+                        setSelectedCanteenId(res.data[0].id);
+                        setSearchParams({ tab: activeTab, canteen: res.data[0].id });
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to fetch canteens:", err);
+            }
+        };
+        fetchCanteens();
+    }, []);
+
+    // Fetch order counts by status for selected canteen
     const fetchOrderCounts = useCallback(async () => {
+        if (!selectedCanteenId) return;
         try {
             const access = await getAccessToken();
             const res = await axios.get("http://127.0.0.1:8000/api/orders/counts/", {
                 headers: { Authorization: `Bearer ${access}` },
+                params: { canteen_id: selectedCanteenId },
             });
             setOrderCounts(res.data);
         } catch (err) {
             console.error("Error fetching order counts:", err);
         }
-    }, []);
+    }, [selectedCanteenId]);
 
     useEffect(() => {
-        if (!isAdmin) return;
+        if (!isAdmin || !selectedCanteenId) return;
         fetchOrderCounts();
-    }, [isAdmin, fetchOrderCounts]);
+    }, [isAdmin, selectedCanteenId, fetchOrderCounts]);
 
-    // Fetch orders for active tab
+    // Fetch orders for active tab and selected canteen
     useEffect(() => {
-        if (!isAdmin) return;
+        if (!isAdmin || !selectedCanteenId) return;
 
         const fetchOrders = async () => {
             setLoadingOrders(true);
@@ -127,6 +157,7 @@ export function Admin() {
                         headers: {
                             Authorization: `Bearer ${access}`,
                         },
+                        params: { canteen_id: selectedCanteenId },
                     }
                 );
                 setOrders(res.data);
@@ -138,7 +169,7 @@ export function Admin() {
         };
 
         fetchOrders();
-    }, [activeTab, isAdmin]);
+    }, [activeTab, isAdmin, selectedCanteenId]);
 
     const handleMoveOrders = async (orderId, newStatus) => {
         try {
@@ -198,7 +229,35 @@ export function Admin() {
             <Header />
             <header className="admin-header-bar">
                 <span className="admin-header-title">Admin Management Portal</span>
+                <nav className="admin-nav-segmented">
+                    <button className="admin-nav-btn active" onClick={() => navigate("/admin")}>
+                        Orders
+                    </button>
+                    <button className="admin-nav-btn" onClick={() => navigate("/admin/analytics")}>
+                        Analytics
+                    </button>
+                    <button className="admin-nav-btn" onClick={() => navigate("/admin/menu")}>
+                        Manage Menu
+                    </button>
+                </nav>
             </header>
+
+            {/* Canteen Selector Bar */}
+            <div className="admin-canteen-filter-bar">
+                <span className="selector-label">Select Canteen:</span>
+                <div className="canteen-pills">
+                    {canteens.map((canteen) => (
+                        <button
+                            key={canteen.id}
+                            type="button"
+                            className={`canteen-pill ${selectedCanteenId === canteen.id ? "active" : ""}`}
+                            onClick={() => handleCanteenChange(canteen.id)}
+                        >
+                            {canteen.name}
+                        </button>
+                    ))}
+                </div>
+            </div>
 
             <div className="tabs">
                 <div

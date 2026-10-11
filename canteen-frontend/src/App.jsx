@@ -8,6 +8,7 @@ import { Cart } from './pages/Cart/Cart';
 import { Orders } from './pages/Orders/Orders';
 import { Admin } from './pages/Admin/Admin';
 import { AdminMenuPage } from './pages/Admin/AdminMenuPage';
+import { AdminAnalytics } from './pages/Admin/AdminAnalytics';
 
 
 function App() {
@@ -23,6 +24,7 @@ function App() {
         <Route path='/orders' element={<Orders />} />
         <Route path='/admin' element={<Admin />} />
         <Route path='/admin/menu' element={<AdminMenuPage />} />
+        <Route path='/admin/analytics' element={<AdminAnalytics />} />
       </Routes>
      
     </>

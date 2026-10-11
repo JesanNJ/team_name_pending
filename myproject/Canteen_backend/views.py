@@ -314,20 +314,27 @@ def current_user(request):
 def orders_by_status(request, status=None):
     """
     Fetch orders by status. If no status provided, fetch all orders.
+    Supports filtering by canteen_id query parameter.
     """
     valid_statuses = ["pending", "preparing", "prepared", "delivered", "ready", "cancelled"]
 
     if status and status not in valid_statuses:
         return Response({"error": "Invalid status"}, status=400)
 
-    if status == "ready" or status == "prepared":
-        orders = Order.objects.filter(status__in=["prepared", "ready"]).order_by("-id")
-    elif status:
-        orders = Order.objects.filter(status=status).order_by("-id")
-    else:
-        orders = Order.objects.all().order_by("-id")
+    canteen_id = request.query_params.get("canteen_id") or request.query_params.get("canteen")
 
-    serializer = OrderSerializer(orders, many=True)
+    if status == "ready" or status == "prepared":
+        orders = Order.objects.filter(status__in=["prepared", "ready"])
+    elif status:
+        orders = Order.objects.filter(status=status)
+    else:
+        orders = Order.objects.all()
+
+    if canteen_id:
+        orders = orders.filter(canteen_id=canteen_id)
+
+    orders = orders.order_by("-id")
+    serializer = OrderSerializer(orders, many=True, context={"request": request})
     return Response(serializer.data)
 
 
@@ -336,12 +343,18 @@ def orders_by_status(request, status=None):
 def order_counts(request):
     """
     Fetch order counts grouped by status for admin dashboard.
+    Supports filtering by canteen_id query parameter.
     """
-    pending = Order.objects.filter(status="pending").count()
-    preparing = Order.objects.filter(status="preparing").count()
-    prepared = Order.objects.filter(status__in=["prepared", "ready"]).count()
-    delivered = Order.objects.filter(status="delivered").count()
-    cancelled = Order.objects.filter(status="cancelled").count()
+    canteen_id = request.query_params.get("canteen_id") or request.query_params.get("canteen")
+    qs = Order.objects.all()
+    if canteen_id:
+        qs = qs.filter(canteen_id=canteen_id)
+
+    pending = qs.filter(status="pending").count()
+    preparing = qs.filter(status="preparing").count()
+    prepared = qs.filter(status__in=["prepared", "ready"]).count()
+    delivered = qs.filter(status="delivered").count()
+    cancelled = qs.filter(status="cancelled").count()
     return Response({
         "pending": pending,
         "preparing": preparing,
@@ -658,4 +671,173 @@ def admin_delete_menu_item(request, menu_id):
     menu_item.delete()
 
     return Response({"message": f"'{product_name}' removed from menu"})
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def admin_analytics(request):
+    """
+    Analytics and dashboard data for a single specific canteen.
+    Restricted to admin users.
+    Supports filters:
+    - canteen_id (required UUID)
+    - preset: 'today', 'last_7_days', 'last_30_days', 'this_month', 'all_time'
+    - start_date & end_date (YYYY-MM-DD)
+    """
+    if not is_admin_user(request.user):
+        return Response({"error": "Admin access required"}, status=status.HTTP_403_FORBIDDEN)
+
+    canteen_id = request.query_params.get("canteen_id") or request.query_params.get("canteen")
+    if not canteen_id:
+        return Response({"error": "canteen_id is required. Only one canteen analytics can be viewed at a time."}, status=400)
+
+    try:
+        canteen = Canteen.objects.get(id=canteen_id)
+    except Canteen.DoesNotExist:
+        return Response({"error": "Canteen not found"}, status=404)
+
+    from django.db.models import Sum
+    from django.utils import timezone
+    from datetime import datetime, timedelta, time
+    from collections import defaultdict
+
+    now = timezone.now()
+    preset = request.query_params.get("preset", "").lower()
+    start_date_str = request.query_params.get("start_date")
+    end_date_str = request.query_params.get("end_date")
+
+    start_datetime = None
+    end_datetime = None
+
+    if start_date_str and end_date_str:
+        try:
+            sd = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+            ed = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+            start_datetime = timezone.make_aware(datetime.combine(sd, time.min))
+            end_datetime = timezone.make_aware(datetime.combine(ed, time.max))
+        except ValueError:
+            pass
+
+    if not start_datetime and preset:
+        if preset == "today":
+            start_datetime = timezone.make_aware(datetime.combine(now.date(), time.min))
+            end_datetime = timezone.make_aware(datetime.combine(now.date(), time.max))
+        elif preset == "last_7_days":
+            start_datetime = now - timedelta(days=7)
+            end_datetime = now
+        elif preset == "last_30_days":
+            start_datetime = now - timedelta(days=30)
+            end_datetime = now
+        elif preset == "this_month":
+            first_of_month = now.date().replace(day=1)
+            start_datetime = timezone.make_aware(datetime.combine(first_of_month, time.min))
+            end_datetime = now
+        elif preset == "all_time":
+            start_datetime = None
+            end_datetime = None
+
+    if not start_datetime and not end_datetime and preset != "all_time":
+        start_datetime = now - timedelta(days=30)
+        end_datetime = now
+
+    orders_qs = Order.objects.filter(canteen=canteen)
+    if start_datetime:
+        orders_qs = orders_qs.filter(created_at__gte=start_datetime)
+    if end_datetime:
+        orders_qs = orders_qs.filter(created_at__lte=end_datetime)
+
+    total_orders = orders_qs.count()
+    completed_qs = orders_qs.filter(status="delivered")
+    completed_orders = completed_qs.count()
+    cancelled_orders = orders_qs.filter(status="cancelled").count()
+    active_orders = orders_qs.filter(status__in=["pending", "preparing", "prepared"]).count()
+
+    total_revenue = completed_qs.aggregate(rev=Sum("total_price"))["rev"] or 0.0
+    avg_order_value = (total_revenue / completed_orders) if completed_orders > 0 else 0.0
+    completion_rate = round((completed_orders / total_orders * 100), 1) if total_orders > 0 else 0.0
+
+    status_counts = {
+        "pending": orders_qs.filter(status="pending").count(),
+        "preparing": orders_qs.filter(status="preparing").count(),
+        "prepared": orders_qs.filter(status__in=["prepared", "ready"]).count(),
+        "delivered": completed_orders,
+        "cancelled": cancelled_orders,
+    }
+
+    # Group daily timeline
+    daily_data = {}
+    for ord in orders_qs.order_by("created_at"):
+        d_str = ord.created_at.strftime("%Y-%m-%d")
+        if d_str not in daily_data:
+            daily_data[d_str] = {"date": d_str, "orders": 0, "revenue": 0.0}
+        daily_data[d_str]["orders"] += 1
+        if ord.status == "delivered":
+            daily_data[d_str]["revenue"] += ord.total_price
+
+    timeline = list(daily_data.values())
+
+    # Hourly rush distribution
+    hourly_counts = [0] * 24
+    for ord in orders_qs:
+        h = ord.created_at.hour
+        hourly_counts[h] += 1
+
+    hourly_distribution = [
+        {"hour": h, "label": f"{h:02d}:00", "orders": hourly_counts[h]}
+        for h in range(24)
+    ]
+
+    # Top selling items
+    order_items_qs = OrderItem.objects.filter(order__in=orders_qs).exclude(order__status="cancelled")
+    item_stats = defaultdict(lambda: {"quantity": 0, "revenue": 0.0, "name": "", "category": "", "code": ""})
+
+    for oi in order_items_qs.select_related("product"):
+        p = oi.product
+        item_stats[p.id]["name"] = p.name
+        item_stats[p.id]["code"] = p.product_code
+        item_stats[p.id]["category"] = p.type
+        item_stats[p.id]["quantity"] += oi.quantity
+        item_stats[p.id]["revenue"] += (oi.price * oi.quantity)
+
+    top_selling = sorted(item_stats.values(), key=lambda x: x["quantity"], reverse=True)[:10]
+
+    # Category breakdown
+    category_stats = defaultdict(lambda: {"quantity": 0, "revenue": 0.0})
+    for it in item_stats.values():
+        cat = it["category"] or "Other"
+        category_stats[cat]["quantity"] += it["quantity"]
+        category_stats[cat]["revenue"] += it["revenue"]
+
+    category_breakdown = [
+        {"category": cat, "quantity": data["quantity"], "revenue": round(data["revenue"], 2)}
+        for cat, data in category_stats.items()
+    ]
+
+    return Response({
+        "canteen": {
+            "id": str(canteen.id),
+            "name": canteen.name,
+            "location": canteen.location,
+        },
+        "date_range": {
+            "start": start_datetime.strftime("%Y-%m-%d") if start_datetime else None,
+            "end": end_datetime.strftime("%Y-%m-%d") if end_datetime else None,
+            "preset": preset or "custom",
+        },
+        "summary": {
+            "total_revenue": round(total_revenue, 2),
+            "total_orders": total_orders,
+            "completed_orders": completed_orders,
+            "cancelled_orders": cancelled_orders,
+            "active_orders": active_orders,
+            "avg_order_value": round(avg_order_value, 2),
+            "completion_rate": completion_rate,
+        },
+        "status_distribution": status_counts,
+        "timeline": timeline,
+        "hourly_distribution": hourly_distribution,
+        "top_selling_items": top_selling,
+        "category_breakdown": category_breakdown,
+    })
+
 

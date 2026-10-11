@@ -52,6 +52,11 @@ export function ProductCard({ menu, canteenId, onAddToCartSuccess }) {
                 { headers: { Authorization: `Bearer ${access}` } }
             );
             alert("Added to cart!");
+            // Reset quantity to 1 after successful addition
+            setQuantity((prev) => ({
+                ...prev,
+                [product.id]: 1,
+            }));
             if (onAddToCartSuccess) {
                 onAddToCartSuccess();
             }

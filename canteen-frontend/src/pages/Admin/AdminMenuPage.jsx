@@ -104,6 +104,17 @@ export function AdminMenuPage() {
             <Header />
             <header className="admin-header-bar">
                 <span className="admin-header-title">Admin Management Portal</span>
+                <nav className="admin-nav-segmented">
+                    <button className="admin-nav-btn" onClick={() => navigate("/admin")}>
+                         Orders
+                    </button>
+                    <button className="admin-nav-btn" onClick={() => navigate("/admin/analytics")}>
+                        Analytics
+                    </button>
+                    <button className="admin-nav-btn active" onClick={() => navigate("/admin/menu")}>
+                        Manage Menu
+                    </button>
+                </nav>
             </header>
 
             <AdminMenuSection />
