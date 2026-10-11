@@ -17,11 +17,13 @@ export function Login() {
     e.preventDefault();
     setMessage(""); // clear old message
 
+    const cleanUsername = username.trim();
+
     try {
       const res = await fetch(`${API_BASE_URL}/api/login/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }), // username can be email or username
+        body: JSON.stringify({ username: cleanUsername, password }), // username can be email or username
       });
 
       const text = await res.text(); // read body once
@@ -71,12 +73,23 @@ export function Login() {
             {message && <p className="message">{message}</p>}
             <h2>Login</h2>
             <form onSubmit={handleLogin}>
-              <input type="text" placeholder="Username" required
+              <input
+                type="text"
+                placeholder="Username or Email"
+                required
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck="false"
                 value={username}
-                onChange={(e) => setUsername(e.target.value)} />
-              <input type="password" placeholder="Password" required
+                onChange={(e) => setUsername(e.target.value)}
+              />
+              <input
+                type="password"
+                placeholder="Password"
+                required
                 value={password}
-                onChange={(e) => setPassword(e.target.value)} />
+                onChange={(e) => setPassword(e.target.value)}
+              />
               <button type="submit">Login</button>
             </form>
 

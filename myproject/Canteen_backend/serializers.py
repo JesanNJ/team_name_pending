@@ -36,53 +36,29 @@ class RegisterSerializer(serializers.ModelSerializer):
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
 
     def validate(self, attrs):
-        login_input = attrs.get("username")  # frontend sends "username"
+        raw_login = attrs.get("username", "") or ""
+        login_input = raw_login.strip()  # frontend sends "username" field (can be username or email)
         password = attrs.get("password")
 
-        # Check if input is email
+        if not login_input:
+            raise serializers.ValidationError("Username or email is required")
+
+        # Determine if input is email or username (case-insensitive)
         if "@" in login_input:
-            try:
-                user_obj = User.objects.get(email=login_input)
-                username = user_obj.username  # get actual username
-            except User.DoesNotExist:
+            user_obj = User.objects.filter(email__iexact=login_input).first()
+            if not user_obj:
                 raise serializers.ValidationError("No account found with this email")
+            username = user_obj.username
         else:
-            username = login_input
-            try:
-                user_obj = User.objects.get(username=username)
-            except User.DoesNotExist:
+            user_obj = User.objects.filter(username__iexact=login_input).first()
+            if not user_obj:
+                # Also try email just in case user omitted @ or entered email
+                user_obj = User.objects.filter(email__iexact=login_input).first()
+            if not user_obj:
                 raise serializers.ValidationError("No account found with this username")
+            username = user_obj.username
 
-        # Authenticate using the real username
-        user = authenticate(username=username, password=password)
-        if not user:
-            raise serializers.ValidationError("Invalid credentials")
-
-        data = super().validate({"username": username, "password": password})
-        data["username"] = user.username
-        data["email"] = user.email
-        return data
-
-
-    def validate(self, attrs):
-        login_input = attrs.get("username")  # frontend sends "username" field
-        password = attrs.get("password")
-
-        # Determine if input is email or username
-        if "@" in login_input:
-            try:
-                user_obj = User.objects.get(email=login_input)
-                username = user_obj.username
-            except User.DoesNotExist:
-                raise serializers.ValidationError("No account found with this email")
-        else:
-            username = login_input
-            try:
-                user_obj = User.objects.get(username=username)
-            except User.DoesNotExist:
-                raise serializers.ValidationError("No account found with this username")
-
-        # Authenticate
+        # Authenticate using the exact registered username
         user = authenticate(username=username, password=password)
         if not user:
             raise serializers.ValidationError("Invalid credentials")
