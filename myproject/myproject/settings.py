@@ -142,3 +142,7 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Canteen Order Flow & Kitchen Timings
+MAX_PREPARING = 15
+PACKING_MINUTES = 1

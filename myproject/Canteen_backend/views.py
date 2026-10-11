@@ -279,7 +279,15 @@ def place_order(request, canteen_id):
         # Clear cart
         cart.items.all().delete()
 
-    return Response({"message": "Order placed successfully", "order_id": order.id})
+        from .order_flow import is_order_quick_only, promote_pending
+        if is_order_quick_only(order, canteen.id):
+            order.status = "preparing"
+            order.save(update_fields=["status"])
+        else:
+            promote_pending(canteen)
+            order.refresh_from_db()
+
+    return Response({"message": "Order placed successfully", "order_id": order.id, "status": order.status})
 
 # Get all orders for the logged-in user
 @api_view(["GET"])
@@ -348,10 +356,16 @@ def order_counts(request):
 @permission_classes([IsAuthenticated])
 def move_order(request, status, order_id):
     order = get_object_or_404(Order, id=order_id)
+    old_status = order.status
     # Normalize 'ready' to 'prepared'
     new_status = "prepared" if status == "ready" else status
     order.status = new_status
     order.save()
+
+    from .order_flow import promote_pending
+    if old_status == "preparing" and new_status != "preparing":
+        promote_pending(order.canteen)
+
     return Response({"message": f"Order {order.id} moved to {new_status}"})
 
 
@@ -375,6 +389,7 @@ def cancel_order(request, order_id):
             status=status.HTTP_400_BAD_REQUEST
         )
 
+    old_status = order.status
     from django.db import transaction
     with transaction.atomic():
         order.status = "cancelled"
@@ -387,11 +402,38 @@ def cancel_order(request, order_id):
                 menu_item.stock += item.quantity
                 menu_item.save()
 
+    from .order_flow import promote_pending
+    if old_status == "preparing":
+        promote_pending(order.canteen)
+
     return Response({
         "message": f"Order #{order.id} cancelled successfully and stock has been restored.",
         "order_id": order.id,
         "status": "cancelled"
     })
+
+
+@api_view(["GET"])
+def canteen_wait_time(request, canteen_id):
+    """
+    Returns estimated wait time for a canteen queue.
+    If authenticated and has cart items, uses cart items.
+    Otherwise estimates based on current queue backlog.
+    """
+    canteen = get_object_or_404(Canteen, id=canteen_id)
+    items_to_estimate = []
+
+    if request.user.is_authenticated:
+        cart = Cart.objects.filter(user=request.user, canteen=canteen).first()
+        if cart:
+            for item in cart.items.select_related("product"):
+                items_to_estimate.append({"product": item.product, "quantity": item.quantity})
+
+    from .wait_time import estimate_order_wait
+    estimate = estimate_order_wait(canteen.id, items_to_estimate)
+    estimate["canteen_id"] = str(canteen.id)
+    estimate["canteen_name"] = canteen.name
+    return Response(estimate)
 
 
 # Helper function to check admin rights

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 export function PaymentSummary({ cartData, setCartData, canteenId, getAccessToken }) {
@@ -6,8 +6,32 @@ export function PaymentSummary({ cartData, setCartData, canteenId, getAccessToke
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [loadingOrder, setLoadingOrder] = useState(false);
     const [orderError, setOrderError] = useState("");
+    const [waitEstimate, setWaitEstimate] = useState(null);
 
     const hasItems = cartData?.items && cartData.items.length > 0;
+
+    // Fetch wait estimate when canteen or cart items update
+    useEffect(() => {
+        if (!canteenId) return;
+        let isCurrent = true;
+
+        const fetchWaitEstimate = async () => {
+            try {
+                const token = await getAccessToken().catch(() => null);
+                const headers = token ? { "Authorization": `Bearer ${token}` } : {};
+                const res = await fetch(`http://127.0.0.1:8000/api/canteens/${canteenId}/wait-time/`, { headers });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (isCurrent) setWaitEstimate(data);
+                }
+            } catch (err) {
+                console.error("Failed to fetch wait time:", err);
+            }
+        };
+
+        fetchWaitEstimate();
+        return () => { isCurrent = false; };
+    }, [canteenId, cartData]);
 
     const handleOpenConfirmModal = () => {
         if (!hasItems) {
@@ -85,6 +109,26 @@ export function PaymentSummary({ cartData, setCartData, canteenId, getAccessToke
                     <span>₹ {(cartData?.total_price || 0).toFixed(2)}</span>
                 </div>
 
+                {waitEstimate && (
+                    <div style={{
+                        marginTop: "12px",
+                        padding: "10px 12px",
+                        background: "#f0fdf4",
+                        border: "1px solid #bbf7d0",
+                        borderRadius: "8px",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        fontSize: "13px",
+                        color: "#166534"
+                    }}>
+                        <span>⏱️ Est. Waiting Time:</span>
+                        <strong style={{ background: "#dcfce7", padding: "2px 8px", borderRadius: "6px" }}>
+                            {waitEstimate.range || `${waitEstimate.wait_minutes} min`}
+                        </strong>
+                    </div>
+                )}
+
                 <button
                     className="checkout-btn"
                     id="checkoutBtn"
@@ -114,6 +158,21 @@ export function PaymentSummary({ cartData, setCartData, canteenId, getAccessToke
                         <p className="confirm-modal-subtitle">
                             Please review your order before confirming. Stock will be reserved upon confirmation.
                         </p>
+
+                        {waitEstimate && (
+                            <div style={{
+                                background: "#ecfdf5",
+                                border: "1px solid #a7f3d0",
+                                padding: "10px 14px",
+                                borderRadius: "8px",
+                                marginBottom: "12px",
+                                fontSize: "13px",
+                                color: "#065f46"
+                            }}>
+                                ⏱️ <strong>Estimated Kitchen Time:</strong> ~{waitEstimate.range || `${waitEstimate.wait_minutes} min`}
+                                {waitEstimate.queue_position ? ` (Queue #${waitEstimate.queue_position})` : ""}
+                            </div>
+                        )}
 
                         {orderError && (
                             <div className="confirm-error-banner">

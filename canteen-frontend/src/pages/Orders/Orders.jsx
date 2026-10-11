@@ -90,8 +90,10 @@ export function Orders() {
     };
 
     useEffect(() => {
-        const fetchOrders = async () => {
-            setLoading(true);
+        let isMounted = true;
+
+        const fetchOrders = async (isInitial = false) => {
+            if (isInitial) setLoading(true);
             try {
                 const access = await getAccessToken();
                 const res = await fetch("http://127.0.0.1:8000/api/orders/", {
@@ -100,20 +102,31 @@ export function Orders() {
                         "Content-Type": "application/json",
                         "Authorization": `Bearer ${access}`
                     },
-
                 });
                 if (!res.ok) throw new Error("Failed to fetch orders");
                 const data = await res.json();
-                setOrders(data);
+                if (isMounted) {
+                    setOrders(data);
+                }
             } catch (error) {
                 console.error(error);
-                setOrders([]);
+                if (isInitial && isMounted) setOrders([]);
             } finally {
-                setLoading(false);
+                if (isInitial && isMounted) setLoading(false);
             }
         };
 
-        fetchOrders();
+        fetchOrders(true);
+
+        // Polling every 30 seconds for live order & queue updates
+        const intervalId = setInterval(() => {
+            fetchOrders(false);
+        }, 30000);
+
+        return () => {
+            isMounted = false;
+            clearInterval(intervalId);
+        };
     }, []);
 
 

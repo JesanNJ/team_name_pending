@@ -140,10 +140,56 @@ class OrderItemSerializer(serializers.ModelSerializer):
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
     canteen_name = serializers.CharField(source='canteen.name', read_only=True)
+    wait_minutes = serializers.SerializerMethodField()
+    starts_in_minutes = serializers.SerializerMethodField()
+    queue_position = serializers.SerializerMethodField()
+    expected_delivery_time = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
-        fields = ['id', 'user', 'canteen_name', 'total_price', 'status', 'created_at', 'items']
+        fields = [
+            'id', 'user', 'canteen', 'canteen_name', 'total_price', 'status', 'created_at', 'items',
+            'wait_minutes', 'starts_in_minutes', 'queue_position', 'expected_delivery_time'
+        ]
+
+    def _get_order_timeline(self, obj):
+        if obj.status not in ["pending", "preparing"]:
+            return None
+
+        request = self.context.get("request") if getattr(self, "context", None) else None
+        timelines_cache = None
+        if request is not None:
+            if not hasattr(request, "_canteen_timelines_cache"):
+                request._canteen_timelines_cache = {}
+            timelines_cache = request._canteen_timelines_cache
+
+        canteen_id = obj.canteen_id
+        if timelines_cache is not None:
+            if canteen_id not in timelines_cache:
+                from .wait_time import canteen_timeline
+                timelines_cache[canteen_id] = canteen_timeline(canteen_id)
+            timeline = timelines_cache[canteen_id]
+        else:
+            from .wait_time import canteen_timeline
+            timeline = canteen_timeline(canteen_id)
+
+        return timeline.get(obj.id)
+
+    def get_wait_minutes(self, obj):
+        tl = self._get_order_timeline(obj)
+        return tl.get("wait_minutes") if tl else None
+
+    def get_starts_in_minutes(self, obj):
+        tl = self._get_order_timeline(obj)
+        return tl.get("starts_in_minutes") if tl else None
+
+    def get_queue_position(self, obj):
+        tl = self._get_order_timeline(obj)
+        return tl.get("queue_position") if tl else None
+
+    def get_expected_delivery_time(self, obj):
+        tl = self._get_order_timeline(obj)
+        return tl.get("expected_delivery_time") if tl else None
 
 
 

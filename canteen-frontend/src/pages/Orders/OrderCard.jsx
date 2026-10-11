@@ -19,6 +19,47 @@ export function OrderCard({ orders, openModal, handleCancelOrder, cancellingId }
                                 {order.items.map((item) => `${item.product_name} x${item.quantity}`).join(", ")}
                             </p>
                         </div>
+
+                        {/* Waiting Time & Queue Status */}
+                        {(statusLower === "pending" || statusLower === "preparing") && (
+                            <div className="order-wait-info">
+                                <div className="order-wait-badge">
+                                    <span>⏱️ Est. Ready:</span>
+                                    <strong>
+                                        {order.wait_minutes != null 
+                                            ? `${order.wait_minutes} - ${order.wait_minutes + 2} min`
+                                            : "Calculating..."}
+                                    </strong>
+                                </div>
+                                {statusLower === "pending" && order.queue_position != null && (
+                                    <div className="order-wait-row">
+                                        <span>Queue Position:</span>
+                                        <strong>#{order.queue_position} in line</strong>
+                                    </div>
+                                )}
+                                {statusLower === "pending" && order.starts_in_minutes != null && (
+                                    <div className="order-wait-row">
+                                        <span>Prep Starts:</span>
+                                        <span>
+                                            {order.starts_in_minutes === 0 ? "Up next" : `in ~${order.starts_in_minutes} min`}
+                                        </span>
+                                    </div>
+                                )}
+                                {order.expected_delivery_time && (
+                                    <div className="order-wait-row">
+                                        <span>Expected Pickup:</span>
+                                        <span>{dayjs(order.expected_delivery_time).format("h:mm A")}</span>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {(statusLower === "prepared" || statusLower === "ready") && (
+                            <div className="order-ready-banner">
+                                🔔 <strong>Ready for Pickup!</strong> Collect at counter
+                            </div>
+                        )}
+
                         <div className="order-footer">
                             <span className="order-total">Total: ₹  {order.total_price && order.total_price.toFixed(2)}</span>
                             <span className={`order-status ${statusLower || 'pending'}`}>
