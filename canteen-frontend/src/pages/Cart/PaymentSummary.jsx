@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "../../config/api";
 
 export function PaymentSummary({ cartData, setCartData, canteenId, getAccessToken }) {
     const navigate = useNavigate();
@@ -19,7 +20,7 @@ export function PaymentSummary({ cartData, setCartData, canteenId, getAccessToke
             try {
                 const token = await getAccessToken().catch(() => null);
                 const headers = token ? { "Authorization": `Bearer ${token}` } : {};
-                const res = await fetch(`http://127.0.0.1:8000/api/canteens/${canteenId}/wait-time/`, { headers });
+                const res = await fetch(`${API_BASE_URL}/api/canteens/${canteenId}/wait-time/`, { headers });
                 if (res.ok) {
                     const data = await res.json();
                     if (isCurrent) setWaitEstimate(data);
@@ -54,7 +55,7 @@ export function PaymentSummary({ cartData, setCartData, canteenId, getAccessToke
         setOrderError("");
         try {
             const token = await getAccessToken();
-            const response = await fetch(`http://127.0.0.1:8000/api/place_order/${canteenId}/`, {
+            const response = await fetch(`${API_BASE_URL}/api/place_order/${canteenId}/`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

@@ -1,10 +1,11 @@
 from django.urls import path
-from .views import register,MyTokenObtainPairView,logout_and_blacklist, get_canteens, canteen_menu , move_order,update_cart_item, canteen_wait_time
+from .views import register,MyTokenObtainPairView,logout_and_blacklist, get_canteens, canteen_menu , move_order,update_cart_item, canteen_wait_time, health_check
 from .views import add_to_cart, view_cart, place_order, user_orders, remove_from_cart,current_user,orders_by_status, cancel_order, order_counts
 from .views import admin_canteen_menu, admin_add_menu_item, admin_update_menu_item, admin_delete_menu_item, admin_toggle_menu_item, admin_analytics
 from rest_framework_simplejwt.views import TokenRefreshView
 
 urlpatterns = [
+    path('health/', health_check, name='health_check'),
     path('register/', register, name='register'),
     path('login/', MyTokenObtainPairView.as_view(), name='login'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),

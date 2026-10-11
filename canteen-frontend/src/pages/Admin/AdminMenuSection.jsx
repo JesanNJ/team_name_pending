@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { AdminMenuSkeletonGrid } from "../../components/Skeleton/Skeleton";
+import { API_BASE_URL } from "../../config/api";
 
 async function getAccessToken() {
     let access = localStorage.getItem("access");
     const refresh = localStorage.getItem("refresh");
 
     if (!access || isExpired(access)) {
-        const res = await fetch("http://127.0.0.1:8000/api/token/refresh/", {
+        const res = await fetch(`${API_BASE_URL}/api/token/refresh/`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ refresh }),
@@ -79,7 +80,7 @@ export function AdminMenuSection() {
     useEffect(() => {
         const fetchCanteens = async () => {
             try {
-                const res = await axios.get("http://127.0.0.1:8000/api/canteens/");
+                const res = await axios.get(`${API_BASE_URL}/api/canteens/`);
                 setCanteens(res.data);
                 if (res.data.length > 0) {
                     setSelectedCanteenId(res.data[0].id);
@@ -115,7 +116,7 @@ export function AdminMenuSection() {
             if (category && category !== "All") {
                 params.category = category;
             }
-            const res = await axios.get(`http://127.0.0.1:8000/api/admin/menu/${canteenId}/`, {
+            const res = await axios.get(`${API_BASE_URL}/api/admin/menu/${canteenId}/`, {
                 headers: { Authorization: `Bearer ${token}` },
                 params: params,
             });
@@ -141,7 +142,7 @@ export function AdminMenuSection() {
         try {
             const token = await getAccessToken();
             const res = await axios.post(
-                `http://127.0.0.1:8000/api/admin/menu/toggle/${item.id}/`,
+                `${API_BASE_URL}/api/admin/menu/toggle/${item.id}/`,
                 {},
                 { headers: { Authorization: `Bearer ${token}` } }
             );
@@ -169,7 +170,7 @@ export function AdminMenuSection() {
         try {
             const token = await getAccessToken();
             await axios.post(
-                `http://127.0.0.1:8000/api/admin/menu/update/${item.id}/`,
+                `${API_BASE_URL}/api/admin/menu/update/${item.id}/`,
                 { stock: newStock },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
@@ -197,7 +198,7 @@ export function AdminMenuSection() {
 
         try {
             const token = await getAccessToken();
-            await axios.delete(`http://127.0.0.1:8000/api/admin/menu/delete/${item.id}/`, {
+            await axios.delete(`${API_BASE_URL}/api/admin/menu/delete/${item.id}/`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             showToast(`"${item.product_name}" removed from menu`, "success");
@@ -233,7 +234,7 @@ export function AdminMenuSection() {
         try {
             const token = await getAccessToken();
             const res = await axios.post(
-                "http://127.0.0.1:8000/api/admin/menu/add/",
+                `${API_BASE_URL}/api/admin/menu/add/`,
                 {
                     canteen_id: selectedCanteenId,
                     name: addForm.name.trim(),
@@ -277,7 +278,7 @@ export function AdminMenuSection() {
         try {
             const token = await getAccessToken();
             const res = await axios.post(
-                `http://127.0.0.1:8000/api/admin/menu/update/${editingItem.id}/`,
+                `${API_BASE_URL}/api/admin/menu/update/${editingItem.id}/`,
                 {
                     name: editForm.name.trim(),
                     price: parseFloat(editForm.price),

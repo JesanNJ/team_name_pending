@@ -10,13 +10,14 @@ import FilterMenu from "./FilterMenu";
 import { CanteenSwitcher } from "./CanteenSwitcher";
 import axios from "axios";
 import { ProductSkeletonGrid } from "../../components/Skeleton/Skeleton";
+import { API_BASE_URL } from "../../config/api";
 
 async function getAccessToken() {
     let access = localStorage.getItem("access");
     const refresh = localStorage.getItem("refresh");
 
     if (!access || isExpired(access)) {
-        const res = await fetch("http://127.0.0.1:8000/api/token/refresh/", {
+        const res = await fetch(`${API_BASE_URL}/api/token/refresh/`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ refresh }),
@@ -64,7 +65,7 @@ export function Menu() {
     const fetchCartCount = useCallback(async () => {
         try {
             const token = await getAccessToken();
-            const res = await axios.get(`http://127.0.0.1:8000/api/cart/view/${canteenId}`, {
+            const res = await axios.get(`${API_BASE_URL}/api/cart/view/${canteenId}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             const total = res.data?.items
@@ -97,7 +98,7 @@ export function Menu() {
         }
 
         axios
-            .get(`http://127.0.0.1:8000/api/canteens/${canteenId}/menu/`, { params })
+            .get(`${API_BASE_URL}/api/canteens/${canteenId}/menu/`, { params })
             .then((res) => {
                 setMenu(res.data);
             })

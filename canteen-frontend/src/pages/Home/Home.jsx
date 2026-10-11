@@ -6,6 +6,7 @@ import { useNavigate, useLocation } from "react-router-dom"
 import jwt_decode from "jwt-decode";
 import axios from "axios";
 import { CanteenChoiceSkeleton } from "../../components/Skeleton/Skeleton";
+import { API_BASE_URL } from "../../config/api";
 
 
 
@@ -14,7 +15,7 @@ async function getAccessToken() {
   const refresh = localStorage.getItem("refresh");
 
   if (!access || isExpired(access)) {
-    const res = await fetch("http://127.0.0.1:8000/api/token/refresh/", {
+    const res = await fetch(`${API_BASE_URL}/api/token/refresh/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refresh }),
@@ -77,7 +78,7 @@ export function Home() {
     const fetchCanteens = async () => {
       setLoadingCanteens(true);
       try {
-        const res = await fetch("http://127.0.0.1:8000/api/canteens/");
+        const res = await fetch(`${API_BASE_URL}/api/canteens/`);
         const data = await res.json();
         setCanteens(data);
       } catch (err) {
@@ -93,7 +94,7 @@ export function Home() {
     const fetchUser = async () => {
       try {
         const token = await getAccessToken(); // your JWT access token
-        const res = await axios.get("http://127.0.0.1:8000/api/current-user/", {
+        const res = await axios.get(`${API_BASE_URL}/api/current-user/`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setUser(res.data);
@@ -119,7 +120,7 @@ export function Home() {
     const refresh = localStorage.getItem("refresh");
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/logout/", {
+      const res = await fetch(`${API_BASE_URL}/api/logout/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

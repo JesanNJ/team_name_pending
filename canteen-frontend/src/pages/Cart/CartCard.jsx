@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { API_BASE_URL } from "../../config/api";
 
 
 
@@ -8,7 +9,7 @@ async function getAccessToken() {
     const refresh = localStorage.getItem("refresh");
 
     if (!access || isExpired(access)) {
-        const res = await fetch("http://127.0.0.1:8000/api/token/refresh/", {
+        const res = await fetch(`${API_BASE_URL}/api/token/refresh/`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ refresh }),
@@ -61,7 +62,7 @@ export function CartCard({ cartData, canteenId, setCartData }) {
             const access = await getAccessToken(); // your token function
             console.log(productId)
             await axios.post(
-                `http://127.0.0.1:8000/api/cart/update/${canteenId}/${productId}`,
+                `${API_BASE_URL}/api/cart/update/${canteenId}/${productId}`,
                 { quantity: newQty },
                 { headers: { Authorization: `Bearer ${access}` } }
             );
@@ -94,7 +95,7 @@ export function CartCard({ cartData, canteenId, setCartData }) {
         const access = await getAccessToken();
         try {
             await axios.delete(
-                `http://127.0.0.1:8000/api/cart/remove/${canteenId}/${productId}/`,
+                `${API_BASE_URL}/api/cart/remove/${canteenId}/${productId}/`,
                 { headers: { Authorization: `Bearer ${access}` } }
             );
             // Update UI after removal

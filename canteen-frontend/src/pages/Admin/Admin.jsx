@@ -10,13 +10,14 @@ import { DeliveredSection } from './DeliveredSection';
 import { CancelledSection } from './CancelledSection';
 import { AdminAuthSkeleton } from '../../components/Skeleton/Skeleton';
 import { supabase } from '../../supabaseClient';
+import { API_BASE_URL } from '../../config/api';
 
 async function getAccessToken() {
     let access = localStorage.getItem("access");
     const refresh = localStorage.getItem("refresh");
 
     if (!access || isExpired(access)) {
-        const res = await fetch("http://127.0.0.1:8000/api/token/refresh/", {
+        const res = await fetch(`${API_BASE_URL}/api/token/refresh/`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ refresh }),
@@ -84,7 +85,7 @@ export function Admin() {
         const checkAdminStatus = async () => {
             try {
                 const access = await getAccessToken();
-                const res = await axios.get("http://127.0.0.1:8000/api/current-user/", {
+                const res = await axios.get(`${API_BASE_URL}/api/current-user/`, {
                     headers: { Authorization: `Bearer ${access}` }
                 });
                 const role = res.data?.profile?.role;
@@ -109,7 +110,7 @@ export function Admin() {
     useEffect(() => {
         const fetchCanteens = async () => {
             try {
-                const res = await axios.get("http://127.0.0.1:8000/api/canteens/");
+                const res = await axios.get(`${API_BASE_URL}/api/canteens/`);
                 setCanteens(res.data);
                 if (res.data.length > 0) {
                     if (!queryCanteen) {
@@ -129,7 +130,7 @@ export function Admin() {
         if (!selectedCanteenId) return;
         try {
             const access = await getAccessToken();
-            const res = await axios.get("http://127.0.0.1:8000/api/orders/counts/", {
+            const res = await axios.get(`${API_BASE_URL}/api/orders/counts/`, {
                 headers: { Authorization: `Bearer ${access}` },
                 params: { canteen_id: selectedCanteenId },
             });
@@ -151,7 +152,7 @@ export function Admin() {
         try {
             const access = await getAccessToken();
             const res = await axios.get(
-                `http://127.0.0.1:8000/api/orders/${activeTab}/`,
+                `${API_BASE_URL}/api/orders/${activeTab}/`,
                 {
                     headers: {
                         Authorization: `Bearer ${access}`,
@@ -197,7 +198,7 @@ export function Admin() {
         try {
             const access = await getAccessToken();
             const res = await axios.post(
-                `http://127.0.0.1:8000/api/orders/move/${newStatus}/${orderId}/`,
+                `${API_BASE_URL}/api/orders/move/${newStatus}/${orderId}/`,
                 {},
                 {
                     headers: { Authorization: `Bearer ${access}` },

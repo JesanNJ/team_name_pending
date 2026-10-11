@@ -4,6 +4,7 @@ import "./orders.css";
 import { useState, useEffect } from "react";
 import { OrderSkeletonGrid } from "../../components/Skeleton/Skeleton";
 import { supabase } from "../../supabaseClient";
+import { API_BASE_URL } from "../../config/api";
 
 
 async function getAccessToken() {
@@ -11,7 +12,7 @@ async function getAccessToken() {
     const refresh = localStorage.getItem("refresh");
 
     if (!access || isExpired(access)) {
-        const res = await fetch("http://127.0.0.1:8000/api/token/refresh/", {
+        const res = await fetch(`${API_BASE_URL}/api/token/refresh/`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ refresh }),
@@ -65,7 +66,7 @@ export function Orders() {
         setCancellingId(orderId);
         try {
             const access = await getAccessToken();
-            const res = await fetch(`http://127.0.0.1:8000/api/orders/cancel/${orderId}/`, {
+            const res = await fetch(`${API_BASE_URL}/api/orders/cancel/${orderId}/`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -97,7 +98,7 @@ export function Orders() {
             if (isInitial) setLoading(true);
             try {
                 const access = await getAccessToken();
-                const res = await fetch("http://127.0.0.1:8000/api/orders/", {
+                const res = await fetch(`${API_BASE_URL}/api/orders/`, {
                     method: "GET",
                     headers: {
                         "Content-Type": "application/json",

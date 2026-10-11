@@ -2,6 +2,7 @@ import './auth.css'
 import LogoContainerAuth from '../../components/LogoContainerAuth';
 import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
+import { API_BASE_URL } from '../../config/api';
 
 
 export function Login() {
@@ -17,7 +18,7 @@ export function Login() {
     setMessage(""); // clear old message
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/login/", {
+      const res = await fetch(`${API_BASE_URL}/api/login/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }), // username can be email or username

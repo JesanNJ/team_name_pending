@@ -9,13 +9,26 @@ from rest_framework.decorators import api_view, permission_classes
 from .serializers import RegisterSerializer,MyTokenObtainPairSerializer, CanteenSerializer, MenuSerializer, OrderSerializer, UserSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from .models import Canteen, Menu, Cart, CartItem, Product, Order , OrderItem,UserProfile
 from decimal import Decimal
 
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def health_check(request):
+    """
+    Health check endpoint for deployment monitoring.
+    """
+    return Response({
+        "status": "healthy",
+        "service": "canteen-backend",
+        "timestamp": timezone.now().isoformat()
+    }, status=status.HTTP_200_OK)
 
 
 # Signup API

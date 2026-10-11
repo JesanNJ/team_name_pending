@@ -4,8 +4,8 @@ import { CartCard } from './CartCard';
 import { PaymentSummary } from './PaymentSummary';
 import { useParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import axios from 'axios';
 import { CartSkeletonList, CartSummarySkeleton } from '../../components/Skeleton/Skeleton';
+import { API_BASE_URL } from '../../config/api';
 
 
 
@@ -14,7 +14,7 @@ async function getAccessToken() {
     const refresh = localStorage.getItem("refresh");
 
     if (!access || isExpired(access)) {
-        const res = await fetch("http://127.0.0.1:8000/api/token/refresh/", {
+        const res = await fetch(`${API_BASE_URL}/api/token/refresh/`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ refresh }),
@@ -54,7 +54,7 @@ export function Cart() {
             setLoading(true);
             try {
                 const access = await getAccessToken();
-                const response = await axios.get(`http://127.0.0.1:8000/api/cart/view/${canteenId}`,
+                const response = await axios.get(`${API_BASE_URL}/api/cart/view/${canteenId}`,
                     { headers: { Authorization: `Bearer ${access}` } });
                 setCartData(response.data);
             } catch (err) {

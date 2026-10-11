@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
+import { API_BASE_URL } from "../../config/api";
 
 export function CanteenSwitcher({ currentCanteenId, currentCanteenName, onSwitchCanteen }) {
     const [canteens, setCanteens] = useState([]);
@@ -9,7 +10,7 @@ export function CanteenSwitcher({ currentCanteenId, currentCanteenName, onSwitch
     useEffect(() => {
         const fetchCanteens = async () => {
             try {
-                const res = await axios.get("http://127.0.0.1:8000/api/canteens/");
+                const res = await axios.get(`${API_BASE_URL}/api/canteens/`);
                 setCanteens(res.data);
             } catch (err) {
                 console.error("Failed to load canteens:", err);

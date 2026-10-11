@@ -15,9 +15,12 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path,include
+from django.urls import path, include
+from Canteen_backend.views import health_check
 
 urlpatterns = [
+    path('', health_check, name='root_health'),
+    path('health/', health_check, name='health'),
     path('admin/', admin.site.urls),
-    path('api/',include('Canteen_backend.urls')),
+    path('api/', include('Canteen_backend.urls')),
 ]
