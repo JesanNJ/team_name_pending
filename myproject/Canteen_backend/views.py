@@ -291,10 +291,16 @@ def place_order(request, canteen_id):
 
 # Get all orders for the logged-in user
 @api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def user_orders(request):
     user = request.user
-    orders = Order.objects.filter(user=user).order_by('-created_at')
-    serializer = OrderSerializer(orders, many=True)
+    orders = (
+        Order.objects.filter(user=user)
+        .select_related("canteen", "user")
+        .prefetch_related("user__groups", "items__product")
+        .order_by('-created_at')
+    )
+    serializer = OrderSerializer(orders, many=True, context={"request": request})
     return Response(serializer.data)
 
 
@@ -333,7 +339,11 @@ def orders_by_status(request, status=None):
     if canteen_id:
         orders = orders.filter(canteen_id=canteen_id)
 
-    orders = orders.order_by("-id")
+    orders = (
+        orders.select_related("canteen", "user")
+        .prefetch_related("user__groups", "items__product")
+        .order_by("-id")
+    )
     serializer = OrderSerializer(orders, many=True, context={"request": request})
     return Response(serializer.data)
 

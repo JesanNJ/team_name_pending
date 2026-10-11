@@ -3,6 +3,7 @@ from django.conf import settings
 # Default packing and kitchen overhead time in minutes
 PACKING_MINUTES = getattr(settings, "PACKING_MINUTES", 1)
 MAX_PREPARING = getattr(settings, "MAX_PREPARING", 15)
+STAFF_CREDIT_MINUTES = getattr(settings, "STAFF_CREDIT_MINUTES", 8)
 
 # Standard station definitions
 STANDARD_STATIONS = {

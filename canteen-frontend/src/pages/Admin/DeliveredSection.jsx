@@ -11,7 +11,10 @@ export function DeliveredSection({ orders, loading }) {
                     orders.map((item) => {
                         return (
                             <div className="order-card" key={item.id}>
-                                <strong>Order #{item.id}</strong>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                                    <strong style={{ margin: 0 }}>Order #{item.id}</strong>
+                                    {item.priority && <span className="staff-priority-badge">Staff</span>}
+                                </div>
                                 <p className='canteen-name'>{item.canteen_name}</p>
                                 <p className='items'>
                                     {item.items.map((item) => {

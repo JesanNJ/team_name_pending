@@ -10,8 +10,18 @@ import random
 # Create your models here.
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE,related_name="userprofile")
-    ROLE_CHOICES = (("admin","Admin"), ("user","User"))
+    ROLE_CHOICES = (("admin","Admin"), ("user","User"), ("staff","Staff"))
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default="user")
+
+
+@receiver(post_save, sender=UserProfile)
+def sync_staff_group(sender, instance, **kwargs):
+    from django.contrib.auth.models import Group
+    staff_group, _ = Group.objects.get_or_create(name="Staff")
+    if instance.role == "staff":
+        instance.user.groups.add(staff_group)
+    else:
+        instance.user.groups.remove(staff_group)
 
 
 class Canteen(models.Model):

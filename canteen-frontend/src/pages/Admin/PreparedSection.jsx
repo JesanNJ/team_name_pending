@@ -12,7 +12,10 @@ export function PreparedSection({ orders, loading, handleMoveOrders }) {
                         return (
                             <div className="order-card ready-pickup-card" key={item.id}>
                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                    <strong>Order #{item.id}</strong>
+                                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                        <strong>Order #{item.id}</strong>
+                                        {item.priority && <span className="staff-priority-badge">Staff</span>}
+                                    </div>
                                     <span className="order-status-badge ready">Ready for Pickup</span>
                                 </div>
                                 <p className='canteen-name'>{item.canteen_name}</p>

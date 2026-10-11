@@ -1,10 +1,59 @@
 import logging
+from datetime import timedelta
 from django.conf import settings
 from django.db import transaction
+from django.utils import timezone
 from .models import Canteen, Order
-from .wait_config import get_station_for_product, MAX_PREPARING
+from .wait_config import get_station_for_product, MAX_PREPARING, STAFF_CREDIT_MINUTES
 
 logger = logging.getLogger(__name__)
+
+
+def is_staff_member(user):
+    """
+    Checks if a user belongs to the Django auth Group named 'Staff'.
+    Does not use Django's is_staff flag.
+    """
+    if not user or not getattr(user, "is_authenticated", False):
+        return False
+    if hasattr(user, "_prefetched_objects_cache") and "groups" in user._prefetched_objects_cache:
+        return any(g.name == "Staff" for g in user.groups.all())
+    return user.groups.filter(name="Staff").exists()
+
+
+def get_staff_user_ids(user_ids):
+    """
+    Given an iterable of user IDs, returns a set of user IDs that belong to the 'Staff' group.
+    Executes in a single query to prevent N+1 queries.
+    """
+    if not user_ids:
+        return set()
+    from django.contrib.auth.models import User
+    return set(
+        User.objects.filter(groups__name="Staff", id__in=user_ids).values_list("id", flat=True)
+    )
+
+
+def effective_time(order, staff_ids=None):
+    """
+    Sort key function for ordering pending orders with staff preference:
+        effective_time = order.created_at - STAFF_CREDIT_MINUTES (if order user is staff)
+        effective_time = order.created_at (otherwise)
+    Ties broken by lower order.id.
+    Returns: (effective_datetime, order.id)
+    """
+    credit = getattr(settings, "STAFF_CREDIT_MINUTES", STAFF_CREDIT_MINUTES)
+    is_staff = False
+    if staff_ids is not None:
+        is_staff = order.user_id in staff_ids
+    elif getattr(order, "user", None):
+        is_staff = is_staff_member(order.user)
+
+    eff_dt = order.created_at or timezone.now()
+    if is_staff:
+        eff_dt = eff_dt - timedelta(minutes=credit)
+
+    return (eff_dt, order.id)
 
 
 def is_order_quick_only(order, canteen_id=None):
@@ -29,7 +78,8 @@ def promote_pending(canteen_or_id):
     Concurrency-safe promotion of pending orders to preparing for a canteen.
     - Limits concurrent non-quick preparing orders to MAX_PREPARING (default 15).
     - Quick-only orders skip the cap.
-    - Lowest ID pending orders are promoted first (FIFO).
+    - Promoted by ascending effective_time; ties broken by lower order id.
+    - Orders already preparing are NEVER displaced/preempted.
     """
     canteen_id = canteen_or_id.id if isinstance(canteen_or_id, Canteen) else canteen_or_id
     promoted_orders = []
@@ -54,11 +104,18 @@ def promote_pending(canteen_or_id):
         max_prep = getattr(settings, "MAX_PREPARING", MAX_PREPARING)
         free_slots = max(0, max_prep - active_slot_count)
 
-        # Pending orders in FIFO order
-        pending_orders = Order.objects.filter(
-            canteen_id=canteen.id,
-            status="pending"
-        ).prefetch_related("items__product").order_by("id")
+        # Pending orders ordered by effective_time, ties broken by lower id
+        pending_orders = list(
+            Order.objects.filter(
+                canteen_id=canteen.id,
+                status="pending"
+            ).prefetch_related("items__product")
+        )
+
+        user_ids = {ord.user_id for ord in pending_orders if ord.user_id}
+        staff_ids = get_staff_user_ids(user_ids)
+
+        pending_orders.sort(key=lambda ord: effective_time(ord, staff_ids))
 
         for ord in pending_orders:
             quick = is_order_quick_only(ord, canteen.id)

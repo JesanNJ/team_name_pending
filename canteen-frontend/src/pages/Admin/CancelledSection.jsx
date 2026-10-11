@@ -12,7 +12,10 @@ export function CancelledSection({ orders, loading }) {
                         return (
                             <div className="order-card cancelled-order-card" key={item.id}>
                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                    <strong>Order #{item.id}</strong>
+                                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                        <strong>Order #{item.id}</strong>
+                                        {item.priority && <span className="staff-priority-badge">Staff</span>}
+                                    </div>
                                     <span className="order-status-badge cancelled" style={{
                                         background: "#fde8e8",
                                         color: "#e74c3c",

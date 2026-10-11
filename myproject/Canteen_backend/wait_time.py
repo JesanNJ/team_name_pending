@@ -12,7 +12,7 @@ from .wait_config import (
     PACKING_MINUTES,
     MAX_PREPARING,
 )
-from .order_flow import is_order_quick_only
+from .order_flow import is_order_quick_only, effective_time, get_staff_user_ids
 
 
 def compute_order_prep_and_backlog(
@@ -150,6 +150,10 @@ def canteen_timeline(canteen_id):
 
     preparing_orders = [o for o in open_orders if o.status == "preparing"]
     pending_orders = [o for o in open_orders if o.status == "pending"]
+
+    user_ids = {o.user_id for o in pending_orders if o.user_id}
+    staff_ids = get_staff_user_ids(user_ids)
+    pending_orders.sort(key=lambda ord: effective_time(ord, staff_ids))
 
     now = django_tz.now()
     pack_min = getattr(settings, "PACKING_MINUTES", PACKING_MINUTES)
@@ -323,6 +327,10 @@ def estimate_order_wait(canteen_id, items_list):
     # Calculate queue slots
     preparing_orders = [o for o in open_orders if o.status == "preparing"]
     pending_orders = [o for o in open_orders if o.status == "pending"]
+
+    user_ids = {o.user_id for o in pending_orders if o.user_id}
+    staff_ids = get_staff_user_ids(user_ids)
+    pending_orders.sort(key=lambda ord: effective_time(ord, staff_ids))
 
     slot_finish_times = [
         timeline.get(ord.id, {}).get("kitchen_finish", 0.0)

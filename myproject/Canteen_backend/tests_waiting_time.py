@@ -1,10 +1,14 @@
 import uuid
+from datetime import timedelta
+from django.utils import timezone
 from django.test import TestCase, override_settings
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
+from rest_framework.test import APIRequestFactory, force_authenticate
 from Canteen_backend.models import Canteen, Product, Menu, Order, OrderItem
-from Canteen_backend.order_flow import promote_pending, is_order_quick_only
+from Canteen_backend.order_flow import promote_pending, is_order_quick_only, effective_time, is_staff_member
 from Canteen_backend.wait_time import canteen_timeline
 from Canteen_backend.serializers import OrderSerializer
+from Canteen_backend.views import orders_by_status, user_orders
 
 
 class WaitingTimeAndOrderFlowTests(TestCase):
@@ -299,3 +303,222 @@ class WaitingTimeAndOrderFlowTests(TestCase):
         self.assertEqual(ser.data["starts_in_minutes"], 5)
         self.assertEqual(ser.data["wait_minutes"], 23)
         self.assertIsNotNone(ser.data["expected_delivery_time"])
+
+
+class StaffPriorityOrderFlowTests(TestCase):
+    def setUp(self):
+        self.staff_group, _ = Group.objects.get_or_create(name="Staff")
+        self.student_a = User.objects.create_user(username="student_a", password="password")
+        self.student_b = User.objects.create_user(username="student_b", password="password")
+        self.staff_c = User.objects.create_user(username="staff_c", password="password")
+        self.staff_d = User.objects.create_user(username="staff_d", password="password")
+        self.staff_c.groups.add(self.staff_group)
+        self.staff_d.groups.add(self.staff_group)
+
+        self.canteen = Canteen.objects.create(
+            id=uuid.uuid4(),
+            name="Main Canteen",
+            location="Campus"
+        )
+        self.prod_live = Product.objects.create(
+            product_code="TEST_LIVE_STAFF",
+            name="Staff Dosa",
+            price=50.0,
+            type="Veg",
+            canteen=self.canteen
+        )
+        self.base_time = timezone.now()
+
+    def _create_order(self, user, minutes_offset, canteen=None, status="pending"):
+        target_canteen = canteen or self.canteen
+        ord = Order.objects.create(
+            user=user,
+            canteen=target_canteen,
+            status=status,
+            total_price=50.0
+        )
+        OrderItem.objects.create(order=ord, product=self.prod_live, quantity=1, price=50.0)
+        # Manually update created_at to simulate exact timestamps
+        Order.objects.filter(id=ord.id).update(
+            created_at=self.base_time + timedelta(minutes=minutes_offset)
+        )
+        ord.refresh_from_db()
+        return ord
+
+    @override_settings(MAX_PREPARING=15, STAFF_CREDIT_MINUTES=8)
+    def test_1_promotion_order_with_staff_credit(self):
+        """
+        1. Orders: A student 12:00, B student 12:02, C staff 12:05, D staff 12:20.
+           Expected promotion order as slots free: C, A, B, D.
+           (effective times: C 11:57, A 12:00, B 12:02, D 12:12)
+        """
+        prep_orders = [self._create_order(self.student_a, -10, status="preparing") for _ in range(15)]
+
+        ord_a = self._create_order(self.student_a, 0)   # 12:00 -> eff 12:00
+        ord_b = self._create_order(self.student_b, 2)   # 12:02 -> eff 12:02
+        ord_c = self._create_order(self.staff_c, 5)     # 12:05 -> eff 11:57
+        ord_d = self._create_order(self.staff_d, 20)    # 12:20 -> eff 12:12
+
+        # Free 1 slot
+        prep_orders[0].status = "prepared"
+        prep_orders[0].save()
+
+        promoted = promote_pending(self.canteen)
+        self.assertEqual(len(promoted), 1)
+        self.assertEqual(promoted[0].id, ord_c.id)
+
+        # Free 2nd slot
+        prep_orders[1].status = "prepared"
+        prep_orders[1].save()
+        promoted2 = promote_pending(self.canteen)
+        self.assertEqual(len(promoted2), 1)
+        self.assertEqual(promoted2[0].id, ord_a.id)
+
+        # Free 3rd slot
+        prep_orders[2].status = "prepared"
+        prep_orders[2].save()
+        promoted3 = promote_pending(self.canteen)
+        self.assertEqual(len(promoted3), 1)
+        self.assertEqual(promoted3[0].id, ord_b.id)
+
+        # Free 4th slot
+        prep_orders[3].status = "prepared"
+        prep_orders[3].save()
+        promoted4 = promote_pending(self.canteen)
+        self.assertEqual(len(promoted4), 1)
+        self.assertEqual(promoted4[0].id, ord_d.id)
+
+    @override_settings(MAX_PREPARING=15, STAFF_CREDIT_MINUTES=8)
+    def test_2_staff_never_overtakes_student_order_placed_over_8_minutes_earlier(self):
+        """
+        2. A staff order never overtakes a student order placed more than 8 minutes before it.
+        """
+        prep_orders = [self._create_order(self.student_a, -10, status="preparing") for _ in range(15)]
+
+        ord_student = self._create_order(self.student_a, 0)  # 12:00 -> eff 12:00
+        ord_staff = self._create_order(self.staff_c, 9)     # 12:09 -> eff 12:01 (placed 9 min after)
+
+        prep_orders[0].status = "prepared"
+        prep_orders[0].save()
+
+        promoted = promote_pending(self.canteen)
+        self.assertEqual(len(promoted), 1)
+        self.assertEqual(promoted[0].id, ord_student.id)
+
+    @override_settings(MAX_PREPARING=15, STAFF_CREDIT_MINUTES=8)
+    def test_3_preparing_orders_not_displaced_by_staff_order(self):
+        """
+        3. Orders already 'preparing' are not displaced by a new staff order.
+        """
+        prep_orders = [self._create_order(self.student_a, -10, status="preparing") for _ in range(15)]
+        prep_ids = [o.id for o in prep_orders]
+
+        ord_staff = self._create_order(self.staff_c, 0)
+        promote_pending(self.canteen)
+
+        still_prep = Order.objects.filter(id__in=prep_ids, status="preparing").count()
+        self.assertEqual(still_prep, 15)
+
+        ord_staff.refresh_from_db()
+        self.assertEqual(ord_staff.status, "pending")
+
+    @override_settings(MAX_PREPARING=15, STAFF_CREDIT_MINUTES=8)
+    def test_4_queue_position_and_starts_in_minutes_match_promotion_order(self):
+        """
+        4. queue_position and starts_in_minutes shown by the API match the actual promotion order from test 1.
+        """
+        [self._create_order(self.student_a, -10, status="preparing") for _ in range(15)]
+
+        ord_a = self._create_order(self.student_a, 0)   # 12:00 -> eff 12:00
+        ord_b = self._create_order(self.student_b, 2)   # 12:02 -> eff 12:02
+        ord_c = self._create_order(self.staff_c, 5)     # 12:05 -> eff 11:57
+        ord_d = self._create_order(self.staff_d, 20)    # 12:20 -> eff 12:12
+
+        tl = canteen_timeline(self.canteen.id)
+        self.assertEqual(tl[ord_c.id]["queue_position"], 1)
+        self.assertEqual(tl[ord_a.id]["queue_position"], 2)
+        self.assertEqual(tl[ord_b.id]["queue_position"], 3)
+        self.assertEqual(tl[ord_d.id]["queue_position"], 4)
+
+        self.assertLessEqual(tl[ord_c.id]["starts_in_minutes"], tl[ord_a.id]["starts_in_minutes"])
+        self.assertLessEqual(tl[ord_a.id]["starts_in_minutes"], tl[ord_b.id]["starts_in_minutes"])
+        self.assertLessEqual(tl[ord_b.id]["starts_in_minutes"], tl[ord_d.id]["starts_in_minutes"])
+
+    @override_settings(MAX_PREPARING=15, STAFF_CREDIT_MINUTES=8)
+    def test_5_canteen_isolation(self):
+        """
+        5. A staff order in canteen X has no effect on queue position or estimates in canteen Y.
+        """
+        canteen_y = Canteen.objects.create(id=uuid.uuid4(), name="Canteen Y", location="North")
+        prod_y = Product.objects.create(
+            product_code="TEST_Y_PROD",
+            name="Item Y",
+            price=40.0,
+            type="Veg",
+            canteen=canteen_y
+        )
+
+        ord_y = Order.objects.create(user=self.student_a, canteen=canteen_y, status="pending", total_price=40.0)
+        OrderItem.objects.create(order=ord_y, product=prod_y, quantity=1, price=40.0)
+
+        tl_before = canteen_timeline(canteen_y.id)[ord_y.id]
+
+        # Create staff order in canteen X
+        self._create_order(self.staff_c, 0, canteen=self.canteen)
+
+        tl_after = canteen_timeline(canteen_y.id)[ord_y.id]
+        self.assertEqual(tl_before["queue_position"], tl_after["queue_position"])
+        self.assertEqual(tl_before["wait_minutes"], tl_after["wait_minutes"])
+
+    @override_settings(MAX_PREPARING=15, STAFF_CREDIT_MINUTES=8)
+    def test_6_removing_user_from_staff_group_revokes_credit(self):
+        """
+        6. Removing the user from the 'Staff' group makes their next order use credit 0.
+        """
+        ord1 = self._create_order(self.staff_c, 10)
+        ser1 = OrderSerializer(ord1)
+        self.assertTrue(ser1.data["priority"])
+        eff1, _ = effective_time(ord1)
+        self.assertEqual(eff1, ord1.created_at - timedelta(minutes=8))
+
+        # Remove from Staff group
+        self.staff_c.groups.remove(self.staff_group)
+
+        ord2 = self._create_order(self.staff_c, 15)
+        ser2 = OrderSerializer(ord2)
+        self.assertFalse(ser2.data["priority"])
+        eff2, _ = effective_time(ord2)
+        self.assertEqual(eff2, ord2.created_at)
+
+    @override_settings(MAX_PREPARING=15, STAFF_CREDIT_MINUTES=8)
+    def test_7_query_count_does_not_grow_with_orders(self):
+        """
+        7. Query count for the orders endpoint does not grow with the number of orders (no N+1).
+        """
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        factory = APIRequestFactory()
+
+        # Batch 1: 3 orders
+        [self._create_order(self.student_a, i) for i in range(3)]
+        req1 = factory.get(f"/api/orders/pending/?canteen_id={self.canteen.id}")
+        force_authenticate(req1, user=self.staff_c)
+
+        with CaptureQueriesContext(connection) as ctx1:
+            resp1 = orders_by_status(req1, status="pending")
+        count_3 = len(ctx1)
+
+        # Batch 2: Add 7 more orders (total 10 orders)
+        [self._create_order(self.staff_d, i + 10) for i in range(7)]
+        req2 = factory.get(f"/api/orders/pending/?canteen_id={self.canteen.id}")
+        force_authenticate(req2, user=self.staff_c)
+
+        with CaptureQueriesContext(connection) as ctx2:
+            resp2 = orders_by_status(req2, status="pending")
+        count_10 = len(ctx2)
+
+        self.assertEqual(resp1.status_code, 200)
+        self.assertEqual(resp2.status_code, 200)
+        # Query count must remain identical regardless of the number of orders in the queue
+        self.assertEqual(count_3, count_10)

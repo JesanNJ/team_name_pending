@@ -144,12 +144,13 @@ class OrderSerializer(serializers.ModelSerializer):
     starts_in_minutes = serializers.SerializerMethodField()
     queue_position = serializers.SerializerMethodField()
     expected_delivery_time = serializers.SerializerMethodField()
+    priority = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
         fields = [
             'id', 'user', 'canteen', 'canteen_name', 'total_price', 'status', 'created_at', 'items',
-            'wait_minutes', 'starts_in_minutes', 'queue_position', 'expected_delivery_time'
+            'wait_minutes', 'starts_in_minutes', 'queue_position', 'expected_delivery_time', 'priority'
         ]
 
     def _get_order_timeline(self, obj):
@@ -190,6 +191,27 @@ class OrderSerializer(serializers.ModelSerializer):
     def get_expected_delivery_time(self, obj):
         tl = self._get_order_timeline(obj)
         return tl.get("expected_delivery_time") if tl else None
+
+    def get_priority(self, obj):
+        user = getattr(obj, "user", None)
+        if user and hasattr(user, "_prefetched_objects_cache") and "groups" in user._prefetched_objects_cache:
+            return any(g.name == "Staff" for g in user.groups.all())
+
+        request = self.context.get("request") if getattr(self, "context", None) else None
+        if request is not None:
+            if not hasattr(request, "_staff_user_ids_cache") or request._staff_user_ids_cache is None:
+                from .order_flow import get_staff_user_ids
+                parent = getattr(self, "parent", None)
+                if parent and hasattr(parent, "instance") and parent.instance:
+                    u_ids = {o.user_id for o in parent.instance if getattr(o, "user_id", None)}
+                else:
+                    u_ids = {obj.user_id} if getattr(obj, "user_id", None) else set()
+                request._staff_user_ids_cache = get_staff_user_ids(u_ids)
+
+            return obj.user_id in request._staff_user_ids_cache
+
+        from .order_flow import is_staff_member
+        return is_staff_member(user)
 
 
 
