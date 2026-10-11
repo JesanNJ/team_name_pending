@@ -17,16 +17,25 @@ export function SignUp() {
 
     const handleSignup = async (e) => {
         e.preventDefault();
-        setMessage("")
+        setMessage("");
+
+        const cleanUsername = username.trim();
+        const cleanEmail = email.trim();
 
         try {
             const res = await fetch(`${API_BASE_URL}/api/register/`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ username, email, password }),
+                body: JSON.stringify({ username: cleanUsername, email: cleanEmail, password }),
             });
 
-            const data = await res.json();
+            const text = await res.text();
+            let data;
+            try {
+                data = JSON.parse(text);
+            } catch {
+                data = text;
+            }
 
             if (res.ok) {
                 // Save tokens in localStorage
@@ -37,16 +46,18 @@ export function SignUp() {
                 setMessage("Signup & login successful!");
                 navigate("/home",{ state: { username: data.username } }); // redirect to Home
             } else {
-                if(data.username){
-                    setMessage(data.username[0])
-                }else{
-                    const errorData = await res.json();
-                    setMessage("Error: " + JSON.stringify(errorData));
+                if (typeof data === "object") {
+                    if (data.username) setMessage(data.username[0]);
+                    else if (data.email) setMessage(data.email[0]);
+                    else if (data.detail) setMessage(data.detail);
+                    else setMessage(JSON.stringify(data));
+                } else {
+                    setMessage(data);
                 }
-                
             }
         } catch (err) {
-              setMessage("Something went wrong",err);
+            console.error("Signup error:", err);
+            setMessage("Something went wrong");
         }
 
     };
@@ -64,15 +75,33 @@ export function SignUp() {
                         {message ? <p className='message'>{message}</p> : null}
                         <h2>Sign Up</h2>
                         <form onSubmit={handleSignup}>
-                            <input type="text" placeholder="Full Name" value={username}
-                                onChange={(e) => setUsername(e.target.value)} required 
+                            <input
+                                type="text"
+                                placeholder="Username / Full Name"
+                                value={username}
+                                autoCapitalize="none"
+                                autoCorrect="off"
+                                spellCheck="false"
+                                onChange={(e) => setUsername(e.target.value)}
+                                required 
                             />
-                            <input type="email" placeholder="Email" required 
+                            <input
+                                type="email"
+                                placeholder="Email"
+                                required 
+                                autoCapitalize="none"
+                                autoCorrect="off"
+                                spellCheck="false"
                                 value={email}
-                                onChange={(e) => setEmail(e.target.value)}/>
-                            <input type="password" placeholder="Password" required
+                                onChange={(e) => setEmail(e.target.value)}
+                            />
+                            <input
+                                type="password"
+                                placeholder="Password"
+                                required
                                 value={password}
-                                onChange={(e) => setPassword(e.target.value)} />
+                                onChange={(e) => setPassword(e.target.value)}
+                            />
                             <button type="submit">Sign Up</button>
                         </form>
 
