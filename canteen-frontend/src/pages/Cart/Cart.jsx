@@ -1,4 +1,5 @@
 import './cart.css';
+import axios from 'axios';
 import { Header } from '../../components/Header';
 import { CartCard } from './CartCard';
 import { PaymentSummary } from './PaymentSummary';
@@ -58,7 +59,11 @@ export function Cart() {
                     { headers: { Authorization: `Bearer ${access}` } });
                 setCartData(response.data);
             } catch (err) {
-                console.error("Failed to load cart:", err);
+                if (err.response && err.response.status === 404) {
+                    setCartData({ items: [], total_price: 0 });
+                } else {
+                    console.error("Failed to load cart:", err);
+                }
             } finally {
                 setLoading(false);
             }
